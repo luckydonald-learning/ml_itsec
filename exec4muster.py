@@ -225,7 +225,8 @@ def bowk_pair(X, Z, d=1.0): # TODO: deleteme
 
 class Classifier(object):
     def __init__(self, k):
-        self._k = k
+        self.cache = load_cache(CACHE_FILE_MORE)
+        self._k_func = k
     # end def
 
     def train(self, ham, spam):
@@ -237,36 +238,34 @@ class Classifier(object):
         self._ham = ham
         self._spam = spam
 
-        c_cache = load_cache(CACHE_FILE_MORE)
-        if 'c_o_m_ham' in c_cache and c_cache['c_o_m_ham']:
-            logger.debug('loaded the center of mass for ham')
-            c_o_m_ham = c_cache['c_o_m_ham']
-        else:
-            logger.debug('calculating the center of mass for ham')
-            c_o_m_ham = kmat(ham, ham, self._k).mean()
-            c_cache['c_o_m_ham'] = c_o_m_ham
-            write_cache(c_cache, CACHE_FILE_MORE)
-        # end if
-        self._c_ham = c_o_m_ham
+        self._c_ham = self._calc_if_not_cached('c_o_m_ham', self._our_kmat(ham, ham))
         """ the center of mass for ham"""
 
-        if 'c_o_m_spam' in c_cache and c_cache['c_o_m_spam']:
-            logger.debug('loaded the center of mass for spam')
-            c_o_m_spam = c_cache['c_o_m_spam']
-        else:
-            logger.debug('calculating the center of mass for spam')
-            c_o_m_spam = kmat(spam, spam, self._k).mean()
-            c_cache['c_o_m_spam'] = c_o_m_spam
-            write_cache(c_cache, CACHE_FILE_MORE)
-        # end if
-
-        self._c_spam = c_o_m_spam
+        self._c_spam = self._calc_if_not_cached('c_o_m_ham', self._our_kmat(spam, spam))
         """ the center of mass for spam"""
 
         logger.debug('center of mass (ham): {ham!r}\ncenter of mass (spam): {spam!r}'.format(
             ham=self._c_ham, spam=self._c_spam
         ))
 
+    def _calc_if_not_cached(self, key, func):
+        if key in self.cache and self.cache[key]:
+            logger.debug('loaded the center of mass for {}'.format(key))
+            value = self.cache[key]
+        else:
+            logger.debug('calculating the center of mass for {}'.format(key))
+            value = func(self._k_func)
+            self.cache[key] = value
+            write_cache(self.cache, CACHE_FILE_MORE)
+        # end if
+        return value
+    # end def
+
+    def _our_kmat(self, X, Y):
+        def _kmat_inner():
+            return kmat(X, Y, self._k_func).mean()
+        # end def
+        return _kmat_inner
     # end def
 
     def classify(self, message, mode='classic', threshold=0.0):
@@ -291,8 +290,8 @@ class Classifier(object):
         :param message:
         :return:
         """
-        a = self._k(message, message)
-        b = kmat([message], self._ham, self._k).mean()
+        a = self._k_func(message, message)
+        b = kmat([message], self._ham, self._k_func).mean()
         c = self._c_ham
         return a - (b + b) + c
 
@@ -302,8 +301,8 @@ class Classifier(object):
         :param message:
         :return:
         """
-        a = self._k(message, message)
-        b = kmat([message], self._spam, self._k).mean()
+        a = self._k_func(message, message)
+        b = kmat([message], self._spam, self._k_func).mean()
         c = self._c_spam
         return a - (b + b) + c
 
