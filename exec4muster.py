@@ -205,8 +205,7 @@ def kmat(X, Y, k=bowk):
             xi = X[i]
             yj = Y[j]
             mat[i, j] = k(xi, yj)
-            mat[j, i] = mat[i, j]
-            # end for
+        # end for
     # end for
     return mat
 # end def
@@ -282,7 +281,7 @@ class Classifier(object):
         else:
             raise ValueError('invalid mode: {}'.format(mode))
         # end if
-        return (ham_or_spam(score, threshold), value)
+        return (ham_or_spam(value, threshold), value)
 
     def _classic(self, message):
         """
@@ -304,7 +303,7 @@ class Classifier(object):
         a = self._k_func(message, message)
         b = kmat([message], self._spam, self._k_func).mean()
         c = self._c_spam
-        return a - (b + b) + c
+        return -(a - (b + b) + c)
 
     def _simple(self, message):
         return self._classic(message) + self._reverse(message)
@@ -370,8 +369,6 @@ if not os.path.exists(CACHE_FILE_WORDS):
     cache = {
         'train_ham': ham_messages_train, 'train_spam': spam_messages_train,
         'test_ham': ham_messages_test, 'test_spam': spam_messages_test,
-        # 'c_o_m_ham': float64
-        # 'c_o_m_spam': float64
     }
     logger.debug('writing cache file...')
     write_cache(cache, CACHE_FILE_WORDS)
@@ -403,20 +400,22 @@ for d in [1]:
     logger.debug('training ham.')
     classifier.train(ham_messages_train, spam_messages_train)
     # for mode in ['classic', 'reverse', 'simple']:
-    for mode in ['classic']:
+    for mode in ['classic', 'reverse', 'simple']:
         logger.debug('calculating for mode={!r}'.format(mode))
         labels = []
         scores = []
+        logger.debug('classifying ham tests')
         for i, message in enumerate(ham_messages_test):
-            logger.debug('classifying ham test {}'.format(i))
             labels.append('ham')
             _, score = classifier.classify(message, mode=mode)
+            logger.debug('classifyed ham test {}: {} ({})'.format(i, score, _))
             scores.append(score)
         # end for
-        for message in spam_messages_test:
-            logger.debug('classifying spam test {}'.format(i))
+        logger.debug('classifying spam tests')
+        for i, message in enumerate(spam_messages_test):
             labels.append('spam')
             _, score = classifier.classify(message, mode=mode)
+            logger.debug('classifyed spam test {}: {} ({})'.format(i, score, _))
             scores.append(score)
         # end for
         for threshold in sorted(scores, reverse=True)[::100]:
