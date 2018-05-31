@@ -251,16 +251,18 @@ class Classifier(object):
         self._spam = spam
 
         self._c_ham = self._calc_if_not_cached('c_o_m_ham', self._our_kmat(ham, ham))
+        self._cache.save()
         """ the center of mass for ham"""
 
-        self._c_spam = self._calc_if_not_cached('c_o_m_ham', self._our_kmat(spam, spam))
+        self._c_spam = self._calc_if_not_cached('c_o_m_spam', self._our_kmat(spam, spam))
         """ the center of mass for spam"""
+        self._cache.save()
 
         logger.debug('center of mass (ham): {ham!r}\ncenter of mass (spam): {spam!r}'.format(
             ham=self._c_ham, spam=self._c_spam
         ))
 
-    def _calc_if_not_cached(self, key, func):
+    def _calc_if_not_cached(self, key, func, *args, **kwargs):
         """
         :param key: Key for the current value
         :param func:
@@ -278,10 +280,9 @@ class Classifier(object):
             value = cache[key]
         else:
             logger.debug('calculating value for {}.'.format(key))
-            value = func(self._k_func)
+            value = func(*args, **kwargs)
             cache[key] = value
         # end if
-        self._cache.save()
         return value
     # end def
 
@@ -297,6 +298,11 @@ class Classifier(object):
         :return: Tuple with 'ham'/'spam' as first element, and the value as second.
         :rtype: tuple(str, float)
         """
+        value = self._calc_if_not_cached('classify', self._classify, message)
+        return (ham_or_spam(value, threshold), value)
+    # end def
+
+    def _classify(self, message, ):
         if mode == 'classic':
             value = self._classic(message)
         elif mode == 'reverse':
@@ -306,7 +312,7 @@ class Classifier(object):
         else:
             raise ValueError('invalid mode: {}'.format(mode))
         # end if
-        return (ham_or_spam(value, threshold), value)
+        return value
 
     def _classic(self, message):
         """
@@ -372,6 +378,22 @@ def read_messages(directory, suffix='.spam.txt'):
 
 from DictObject import DictObject
 
+def write_cache(data, file):
+    logger.info('writeing cache file to {}.'.format(path.abspath(file)))
+    with open(file, 'w') as f:
+        json.dump(data, f)
+        logger.info('cache file written to {}.'.format(path.abspath(file)))
+    # end with
+# end def
+
+def load_cache(file):
+    with open(file, 'r') as f:
+        cache = json.load(f)
+    # end with
+    logger.info('cache file loaded, parsing data.')
+    return cache
+# end def
+
 class Cache(DictObject):
     def __init__(self, file, do_load=False, *args, **kwargs):
         self.__file = file
@@ -415,7 +437,6 @@ import json
 # load / write cache
 words_cache = Cache(CACHE_FILE_WORDS)
 if not os.path.exists(CACHE_FILE_WORDS):
-    words_cache = Cache(CACHE_FILE_WORDS)
     logger.info('no cache file found, generating -data.')
     ham_messages_train = list(read_messages(TRAIN_DATA_FOLDER, suffix='.ham.txt'))
     spam_messages_train = list(read_messages(TRAIN_DATA_FOLDER, suffix='.spam.txt'))
@@ -423,15 +444,15 @@ if not os.path.exists(CACHE_FILE_WORDS):
     ham_messages_test = list(read_messages(TEST_DATA_FOLDER, suffix='.ham.txt'))
     spam_messages_test = list(read_messages(TEST_DATA_FOLDER, suffix='.spam.txt'))
 
-    words_cache += {
+    words_cache = {
         'train_ham': ham_messages_train, 'train_spam': spam_messages_train,
         'test_ham': ham_messages_test, 'test_spam': spam_messages_test,
     }
     logger.debug('writing cache file...')
-    words_cache.save()
+    write_cache(words_cache, CACHE_FILE_WORDS)
 else:
     logger.info('cache file found.')
-    words_cache = Cache(CACHE_FILE_WORDS, do_load=True)
+    words_cache = load_cache(CACHE_FILE_WORDS)
 
     ham_messages_train = [Counter(message) for message in words_cache['train_ham']]
     spam_messages_train = [Counter(message) for message in words_cache['train_spam']]
@@ -462,37 +483,51 @@ for d in [1]:
     # for mode in ['classic', 'reverse', 'simple']:
 
     for mode in ['classic', 'reverse', 'simple']:
-        classifier.set_cache_key(['d_{}'.format(d), 'mode_{}'.format(mode)])
         logger.debug('calculating for mode={!r}'.format(mode))
         labels = []
         scores = []
         logger.debug('classifying ham tests')
         for i, message in enumerate(ham_messages_test):
             labels.append('ham')
+            classifier.set_cache_key(['d_{}'.format(d), 'mode_{}'.format(mode), 'ham', str(i)])
             _, score = classifier.classify(message, mode=mode)
-            logger.debug('classifyed ham test {}: {}'.format(i, score))
+            logger.info('classifyed ham test {}: {}'.format(i, score))
             scores.append(score)
         # end for
+        cache.save()
         logger.debug('classifying spam tests')
         for i, message in enumerate(spam_messages_test):
             labels.append('spam')
+            classifier.set_cache_key(['d_{}'.format(d), 'mode_{}'.format(mode), 'spam', str(i)])
             _, score = classifier.classify(message, mode=mode)
-            logger.debug('classifyed spam test {}: {}'.format(i, score))
+            logger.info('classifyed spam test {}: {}'.format(i, score))
             scores.append(score)
         # end for
+        cache.save()
+        max_count = len(scores)
+        tps = []
+        fps = []
         for threshold in sorted(scores, reverse=True)[::100]:
 
             fp = 0
-            """ false positives """
+            """ false positives 
+            is kein spam, falsch als spam erkannt
+            """
 
             tp = 0
-            """ true positives """
+            """ true positives 
+            is spam, richtig erkannt
+            """
 
             tn = 0
-            """ true negatives """
+            """ true negatives
+            ist spam, richtig erkannt
+            """
 
             fn = 0
-            """ false negatives"""
+            """ false negatives
+            ist spam, falsch als spam erkannt
+            """
 
             for score, label in zip(scores, labels):
                 predicted_label = ham_or_spam(score, threshold)
@@ -502,7 +537,7 @@ for d in [1]:
                     fp += 1
                 elif (label, predicted_label) == ('spam', 'ham'):
                     fn += 1
-                elif (label, predicted_label) == ('ham', 'ham'):
+                elif (label, predicted_label) == ('spam', 'spam'):
                     tp += 1
                 else:
                     raise ValueError('dafuq: {!r}'.format((label, predicted_label)))
@@ -511,6 +546,8 @@ for d in [1]:
             logging.success(' threshold: {t}\n true negative: {tn}\n false positive: {fp}\n false negative: {fn}\n true positive {tp}'.format(
                 t=threshold, tn=tn, fp=fp, fn=fn, tp=tp
             ))
+            tps.append(tp/max_count)
+            fps.append(fp/max_count)
         # end for
     # end for
 # end def
