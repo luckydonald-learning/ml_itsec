@@ -223,9 +223,22 @@ def bowk_pair(X, Z, d=1.0): # TODO: deleteme
 
 
 class Classifier(object):
-    def __init__(self, k):
-        self.cache = load_cache(CACHE_FILE_MORE)
+    def __init__(self, k, cache, cache_key):
+        """
+
+        :param k:
+        :param cache:
+        :type  cache: Cache
+        :param cache_key:
+        :type  cache_key: str[]
+        """
+        self._cache = cache
         self._k_func = k
+        self._cache_key = cache_key
+    # end def
+
+    def set_cache_key(self, array):
+        self._cache_key = array
     # end def
 
     def train(self, ham, spam):
@@ -248,15 +261,27 @@ class Classifier(object):
         ))
 
     def _calc_if_not_cached(self, key, func):
-        if key in self.cache and self.cache[key]:
-            logger.debug('loaded the center of mass for {}'.format(key))
-            value = self.cache[key]
-        else:
-            logger.debug('calculating the center of mass for {}'.format(key))
-            value = func(self._k_func)
-            self.cache[key] = value
-            write_cache(self.cache, CACHE_FILE_MORE)
+        """
+        :param key: Key for the current value
+        :param func:
+        :return:
+        """
+        cache = self._cache
+        for access_key in self._cache_key:
+            if access_key not in cache:
+                cache[access_key] = dict()
+            # end def
+            cache = cache[access_key]
         # end if
+        if key in cache and cache[key]:
+            logger.debug('loaded {} from cache.'.format(key))
+            value = cache[key]
+        else:
+            logger.debug('calculating value for {}.'.format(key))
+            value = func(self._k_func)
+            cache[key] = value
+        # end if
+        self._cache.save()
         return value
     # end def
 
@@ -322,7 +347,13 @@ except LookupError:
 
 
 def word_filter(word):
-    return word not in stopwords.words('english')
+    if word in stopwords.words('english'):
+        return False
+    # end if
+    if word == '':
+        return False
+    # end if
+    return
 # end def
 
 
@@ -339,48 +370,74 @@ def read_messages(directory, suffix='.spam.txt'):
 # end def
 
 
+from DictObject import DictObject
+
+class Cache(DictObject):
+    def __init__(self, file, do_load=False, *args, **kwargs):
+        self.__file = file
+        super().__init__(*args, **kwargs)
+        if do_load:
+            self.load()
+        # end if
+    # end def
+
+    def save(self):
+        logger.info('writeing cache file to {}.'.format(path.abspath(self.__file)))
+        data = dict(self)
+        with open(self.__file, 'w') as f:
+            json.dump(data, f)
+            logger.info('cache file written to {}.'.format(path.abspath(self.__file)))
+        # end with
+    # end def
+
+    def read_from_disk(self):
+        with open(self.__file, 'r') as f:
+            cache = json.load(f)
+        # end with
+        logger.info('cache file loaded from {}.'.format(path.abspath(self.__file)))
+        return cache
+    # end def
+
+    def load(self):
+        new_data = self.read_from_disk()
+        for old_key in self.keys():
+            del self[old_key]
+        # end for
+        self.merge_dict(new_data)
+        logger.info('cache file merged.')
+    # end def
+# end class
+
+
+
 import json
-def write_cache(data, file):
-    logger.info('writeing cache file to {}.'.format(path.abspath(file)))
-    with open(file, 'w') as f:
-        json.dump(data, f)
-        logger.info('cache file written to {}.'.format(path.abspath(file)))
-    # end with
-# end def
-
-def load_cache(file):
-    with open(file, 'r') as f:
-        cache = json.load(f)
-    # end with
-    logger.info('cache file loaded, parsing data.')
-    return cache
-# end def
-
 
 # load / write cache
+words_cache = Cache(CACHE_FILE_WORDS)
 if not os.path.exists(CACHE_FILE_WORDS):
-    logger.info('no cache file found, generating data.')
+    words_cache = Cache(CACHE_FILE_WORDS)
+    logger.info('no cache file found, generating -data.')
     ham_messages_train = list(read_messages(TRAIN_DATA_FOLDER, suffix='.ham.txt'))
     spam_messages_train = list(read_messages(TRAIN_DATA_FOLDER, suffix='.spam.txt'))
 
     ham_messages_test = list(read_messages(TEST_DATA_FOLDER, suffix='.ham.txt'))
     spam_messages_test = list(read_messages(TEST_DATA_FOLDER, suffix='.spam.txt'))
 
-    cache = {
+    words_cache += {
         'train_ham': ham_messages_train, 'train_spam': spam_messages_train,
         'test_ham': ham_messages_test, 'test_spam': spam_messages_test,
     }
     logger.debug('writing cache file...')
-    write_cache(cache, CACHE_FILE_WORDS)
+    words_cache.save()
 else:
     logger.info('cache file found.')
-    cache = load_cache(CACHE_FILE_WORDS)
+    words_cache = Cache(CACHE_FILE_WORDS, do_load=True)
 
-    ham_messages_train = [Counter(message) for message in cache['train_ham']]
-    spam_messages_train = [Counter(message) for message in cache['train_spam']]
+    ham_messages_train = [Counter(message) for message in words_cache['train_ham']]
+    spam_messages_train = [Counter(message) for message in words_cache['train_spam']]
 
-    ham_messages_test = [Counter(message) for message in cache['test_ham']]
-    spam_messages_test = [Counter(message) for message in cache['test_spam']]
+    ham_messages_test = [Counter(message) for message in words_cache['test_ham']]
+    spam_messages_test = [Counter(message) for message in words_cache['test_spam']]
 
     logger.info('cache file parsed.')
 # end if
@@ -391,16 +448,21 @@ def ham_or_spam(score, threshold=0.5):
 
 
 #for d in [1, 2, 3, 4]:
+cache = Cache(CACHE_FILE_MORE, do_load=os.path.exists(CACHE_FILE_MORE))
+
 for d in [1]:
     logger.debug('calculating for d={}'.format(d))
     def k(x, y):
         return bowk(x, y, d, True)
     # end def
-    classifier = Classifier(k)
+
+    classifier = Classifier(k, cache=cache, cache_key=['d_{}'.format(d)])
     logger.debug('training ham.')
     classifier.train(ham_messages_train, spam_messages_train)
     # for mode in ['classic', 'reverse', 'simple']:
+
     for mode in ['classic', 'reverse', 'simple']:
+        classifier.set_cache_key(['d_{}'.format(d), 'mode_{}'.format(mode)])
         logger.debug('calculating for mode={!r}'.format(mode))
         labels = []
         scores = []
@@ -408,14 +470,14 @@ for d in [1]:
         for i, message in enumerate(ham_messages_test):
             labels.append('ham')
             _, score = classifier.classify(message, mode=mode)
-            logger.debug('classifyed ham test {}: {} ({})'.format(i, score, _))
+            logger.debug('classifyed ham test {}: {}'.format(i, score))
             scores.append(score)
         # end for
         logger.debug('classifying spam tests')
         for i, message in enumerate(spam_messages_test):
             labels.append('spam')
             _, score = classifier.classify(message, mode=mode)
-            logger.debug('classifyed spam test {}: {} ({})'.format(i, score, _))
+            logger.debug('classifyed spam test {}: {}'.format(i, score))
             scores.append(score)
         # end for
         for threshold in sorted(scores, reverse=True)[::100]:
@@ -438,14 +500,16 @@ for d in [1]:
                     tn += 1
                 elif (label, predicted_label) == ('ham', 'spam'):
                     fp += 1
-                elif (label, predicted_label) == ('sham', 'ham'):
+                elif (label, predicted_label) == ('spam', 'ham'):
                     fn += 1
                 elif (label, predicted_label) == ('ham', 'ham'):
                     tp += 1
+                else:
+                    raise ValueError('dafuq: {!r}'.format((label, predicted_label)))
                 # end if
             # end for
-            logging.success('true negative: {tn}\n false positive: {fp}\n false negative: {fn}\n true positive {tp}'.format(
-                tn=tn, fp=fp, fn=fn, tp=tp
+            logging.success(' threshold: {t}\n true negative: {tn}\n false positive: {fp}\n false negative: {fn}\n true positive {tp}'.format(
+                t=threshold, tn=tn, fp=fp, fn=fn, tp=tp
             ))
         # end for
     # end for
