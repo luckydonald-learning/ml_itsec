@@ -323,10 +323,25 @@ def load_cache(file):
 class Cache(DictObject):
     def __init__(self, file, do_load=False, *args, **kwargs):
         self.__file = file
+        self.__unsaved_changes = False
         super().__init__(*args, **kwargs)
         if do_load:
             self.load()
         # end if
+
+    def on_set(self, key, value_to_set):
+        if not self.__unsaved_changes:
+            logger.debug('now marked unsaved.')
+        # end if
+        self.__unsaved_changes = True
+        return super().on_set(key, value_to_set)
+
+    def on_del(self, key):
+        if not self.__unsaved_changes:
+            logger.debug('now marked unsaved.')
+        # end if
+        self.__unsaved_changes = True
+        return super().on_del(key)
     # end def
 
     def save(self):
@@ -336,6 +351,19 @@ class Cache(DictObject):
             json.dump(data, f)
             logger.info('cache file written to {}.'.format(os.path.abspath(self.__file)))
         # end with
+        if self.__unsaved_changes:
+            logger.debug('now marked saved.')
+        # end if
+        self.__unsaved_changes = False
+    # end def
+
+    def save_if_changed(self):
+        if self.__unsaved_changes:
+            logger.debug('will save changes.')
+            self.save()
+        else:
+            logger.debug('has no unsaved changes.')
+        # end if
     # end def
 
     def read_from_disk(self):
@@ -423,7 +451,7 @@ for d in [1, 2, 3, 4]:
             logger.info('classifyed ham test {}: {}'.format(i, score))
             scores.append(score)
         # end for
-        classifier_cache.save()
+        classifier_cache.save_if_changed()
         logger.debug('classifying spam tests')
         for i, message in enumerate(spam_messages_test):
             labels.append('spam')
@@ -432,7 +460,7 @@ for d in [1, 2, 3, 4]:
             logger.info('classifyed spam test {}: {}'.format(i, score))
             scores.append(score)
         # end for
-        classifier_cache.save()
+        classifier_cache.save_if_changed()
         max_count = len(scores)
         tps = []
         fps = []
