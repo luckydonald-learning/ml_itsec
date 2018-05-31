@@ -165,18 +165,19 @@ import numpy as np
 import math
 import os
 import re
-import sys
 from collections import Counter
+
 
 def bowk(x, z, d=1.0, normalize=True):
     """
     Bag Of Words
-    :param x:
-    :param z:
-    :param d:
-    :param normalize:
-    :type  normalize: bool
-    :return:
+
+    The values `x` and `z` are word counts in a mail,
+    a dict of format `{'word': 3}`,
+    with the key bing a word and the value the count.
+
+    :type x: dict
+    :type z: dict
     """
     # {'word': 3}   key = word, value = count
     result = 0.0
@@ -186,13 +187,52 @@ def bowk(x, z, d=1.0, normalize=True):
         # if word not in smaller_list: continue
         result += x[word] * z[word]
     # end for
+    result **= d  # TODO: `result ** d` correct here, or at the return below?
     if normalize:
         kxx = bowk(x, x, d, normalize=False)
         kzz = bowk(z, z, d, normalize=False)
         result /= math.sqrt(kxx * kzz)
-        # k'(x,z) = k(x
     # end if
+    return result # TODO: `result ** d` here?
+# end def
+
+def bow_k(x, z, d=1.0):
+    """
+    Bag Of Words
+
+    The values `x` and `z` are word counts in a mail,
+    a dict of format `{'word': 3}`,
+    with the key bing a word and the value the count.
+
+    :type x: dict
+    :type z: dict
+    """
+    result = 0.0
+    for word in (x if len(x) < len(z) else z):  # iterate through the smaller set
+        # because if the word is in x and not in z, we would multiply with 0, so we can skip them.
+        # the bigger list will have elements
+        # if word not in smaller_list: continue
+        result += x[word] * z[word]
+    # end for
     return result ** d
+# end def
+
+def normalized_bow_k(x, z, d=1.0):
+    """
+    Bag Of Words
+
+    The values `x` and `z` are word counts in a mail,
+    a dict of format `{'word': 3}`,
+    with the key bing a word and the value the count.
+
+    :type x: dict
+    :type z: dict
+    """
+    kxz = bow_k(x, z, d)
+    kxx = bow_k(x, x, d)
+    kzz = bow_k(z, z, d)
+
+    return kxz / math.sqrt(kxx * kzz)
 # end def
 
 
@@ -208,17 +248,6 @@ def kmat(X, Y, k=bowk):
         # end for
     # end for
     return mat
-# end def
-
-
-def bowk_pair(X, Z, d=1.0): # TODO: deleteme
-    result = 0.0
-    for x in X:
-        for z in Z:
-            result += bowk(x, z, d)
-        # end for
-    # end for
-    return result
 # end def
 
 
@@ -472,10 +501,11 @@ def ham_or_spam(score, threshold=0.5):
 #for d in [1, 2, 3, 4]:
 cache = Cache(CACHE_FILE_MORE, do_load=os.path.exists(CACHE_FILE_MORE))
 
-for d in [1]:
+for d in [1, 2, 3, 4]:
     logger.debug('calculating for d={}'.format(d))
     def k(x, y):
-        return bowk(x, y, d, True)
+        return normalized_bow_k(x, y, d)
+        # return bowk(x, y, d, normalize=True)
     # end def
 
     classifier = Classifier(k, cache=cache, cache_key=['d_{}'.format(d)])
