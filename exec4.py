@@ -116,29 +116,6 @@ Your earliest response to this offer will be appreciated
 Best Regards
 Barr . EMMANUEL SAMS"""
 
-z_nospam = """Liebe Studis ,
-
-mich hat der Hinweis erreicht , dass die Dokumentation zur Template
-Engine Pug nirgends auf dem Aufgabenblatt verlinkt ist . Stimmt ! Darum
-per Mail :
-
-https : / / pugjs . org
-
-David
-
-- - 
-David Goltzsche , M . Sc .
-Institute of Operating Systems and Computer Networks
-Distributed Systems Group
-TU Braunschweig
-
-www : https : / / www . ibr . cs . tu - bs . de / users / goltzsch
-mail : goltzsche @ ibr . cs . tu - bs . de
-tel : + 49 531 391 3249
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-Web - sys mailing list
-Web - sys @ ibr . cs . tu - bs . de
-http : / / mail . ibr . cs . tu - bs . de / listinfo / web - sys"""
 
 def compare(spam_files, good_files, text, method=center_of_mass, d=1):
     count_text = do_count(split_word(text, [' ', "\n"]))

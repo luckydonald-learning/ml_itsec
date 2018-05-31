@@ -123,44 +123,6 @@ Your earliest response to this offer will be appreciated
 Best Regards
 Barr . EMMANUEL SAMS"""
 
-z_nospam = """Liebe Studis ,
-
-mich hat der Hinweis erreicht , dass die Dokumentation zur Template
-Engine Pug nirgends auf dem Aufgabenblatt verlinkt ist . Stimmt ! Darum
-per Mail :
-
-https : / / pugjs . org
-
-David
-
-- - 
-David Goltzsche , M . Sc .
-Institute of Operating Systems and Computer Networks
-Distributed Systems Group
-TU Braunschweig
-
-www : https : / / www . ibr . cs . tu - bs . de / users / goltzsch
-mail : goltzsche @ ibr . cs . tu - bs . de
-tel : + 49 531 391 3249
-_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
-Web - sys mailing list
-Web - sys @ ibr . cs . tu - bs . de
-http : / / mail . ibr . cs . tu - bs . de / listinfo / web - sys"""
-
-
-import matplotlib.pyplot as plt
-import numpy as np
-
-# This is the ROC curve
-#plt.plot(x,y)
-#plt.show()
-
-# This is the AUC
-#auc = np.trapz(y,x)
-
-
-
-
 
 import math
 import os
@@ -216,6 +178,7 @@ def bow_k(x, z, d=1.0):
     # end for
     return result ** d
 # end def
+
 
 def normalized_bow_k(x, z, d=1.0):
     """
@@ -284,7 +247,6 @@ class Classifier(object):
 
         self._c_spam = self._calc_if_not_cached('c_o_m_spam', self._our_kmat(spam, spam), save=True)
         """ the center of mass for spam"""
-        self._cache.save()
 
         logger.debug('center of mass (ham): {ham!r}\ncenter of mass (spam): {spam!r}'.format(
             ham=self._c_ham, spam=self._c_spam
