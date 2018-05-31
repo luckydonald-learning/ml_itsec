@@ -1,15 +1,14 @@
-from os import path
-
-from exec3 import split_word, do_count, calc_k, merge_alphabets
-
+from luckydonaldUtils.logger import logging
+from matplotlib import pyplot as plt
+from collections import Counter
+import numpy as np
 import math
+import nltk
 import os
 import re
-from collections import Counter
 
-# preprocessing
-import nltk
-from luckydonaldUtils.logger import logging
+from exec3 import split_word
+from exec4 import list_files
 
 
 # package related inits
@@ -27,31 +26,14 @@ logging.add_colored_handler(level=logging.DEBUG, date_formatter='%Y-%m-%d %H:%M:
 
 # settings
 
-FOLDER = path.join('..','..',"Machine Learning for Computer Security", "Exercises", "mlsec-exer04-data")
+FOLDER = os.path.join('..','..',"Machine Learning for Computer Security", "Exercises", "mlsec-exer04-data")
 
-
-TRAIN_DATA_FOLDER = path.join(FOLDER, 'spam-train')
-TEST_DATA_FOLDER = path.join(FOLDER, 'spam-test')
-CACHE_FILE_WORDS = path.join(FOLDER, 'cache-words.json')
-CACHE_FILE_CLASSIFIER = path.join(FOLDER, 'cache-classify.json')
+TRAIN_DATA_FOLDER = os.path.join(FOLDER, 'spam-train')
+TEST_DATA_FOLDER = os.path.join(FOLDER, 'spam-test')
+CACHE_FILE_WORDS = os.path.join(FOLDER, 'cache-words.json')
+CACHE_FILE_CLASSIFIER = os.path.join(FOLDER, 'cache-classify.json')
 
 DELIMITERS_D = [' ', '\n']  # space
-
-
-def list_files(dir=TRAIN_DATA_FOLDER):
-    spam_files = []
-    good_files = []
-    for f in os.listdir(dir):
-        if f.endswith(".ham.txt"):
-            good_files.append(f)
-        elif f.endswith(".spam.txt"):
-            spam_files.append(f)
-        else:
-            logger.error("file {} neiter ham nor spam.".format(f))
-        # end if
-    # end for
-    return spam_files, good_files
-# end def
 
 
 def get_words(folder, filename_list, delemiters=[' '], per_file=False, omit_words=[]):
@@ -61,7 +43,7 @@ def get_words(folder, filename_list, delemiters=[' '], per_file=False, omit_word
     returns list of words in file
     """
     for file in filename_list:
-        file = path.join(folder, file)
+        file = os.path.join(folder, file)
         if per_file:
             words_of_file = []
         # end if
@@ -323,10 +305,10 @@ def read_messages(directory, suffix='.spam.txt'):
 from DictObject import DictObject
 
 def write_cache(data, file):
-    logger.info('writing cache file to {}.'.format(path.abspath(file)))
+    logger.info('writing cache file to {}.'.format(os.path.abspath(file)))
     with open(file, 'w') as f:
         json.dump(data, f)
-        logger.info('cache file written to {}.'.format(path.abspath(file)))
+        logger.info('cache file written to {}.'.format(os.path.abspath(file)))
     # end with
 # end def
 
@@ -348,11 +330,11 @@ class Cache(DictObject):
     # end def
 
     def save(self):
-        logger.info('writing cache file to {}.'.format(path.abspath(self.__file)))
+        logger.info('writing cache file to {}.'.format(os.path.abspath(self.__file)))
         data = dict(self)
         with open(self.__file, 'w') as f:
             json.dump(data, f)
-            logger.info('cache file written to {}.'.format(path.abspath(self.__file)))
+            logger.info('cache file written to {}.'.format(os.path.abspath(self.__file)))
         # end with
     # end def
 
@@ -360,7 +342,7 @@ class Cache(DictObject):
         with open(self.__file, 'r') as f:
             cache = json.load(f)
         # end with
-        logger.info('cache file loaded from {}.'.format(path.abspath(self.__file)))
+        logger.info('cache file loaded from {}.'.format(os.path.abspath(self.__file)))
         return cache
     # end def
 
@@ -382,9 +364,11 @@ import json
 words_cache = Cache(CACHE_FILE_WORDS)
 if not os.path.exists(CACHE_FILE_WORDS):
     logger.info('no cache file found, generating word count data.')
+    spam_files, good_files = list_files()
     ham_messages_train = list(read_messages(TRAIN_DATA_FOLDER, suffix='.ham.txt'))
     spam_messages_train = list(read_messages(TRAIN_DATA_FOLDER, suffix='.spam.txt'))
 
+    t_spam_files, t_good_files = list_files(TEST_DATA_FOLDER)
     ham_messages_test = list(read_messages(TEST_DATA_FOLDER, suffix='.ham.txt'))
     spam_messages_test = list(read_messages(TEST_DATA_FOLDER, suffix='.spam.txt'))
 
@@ -501,9 +485,6 @@ for d in [1, 2, 3, 4]:
             tps.append(tp/true_count)
             fps.append(fp/false_count)
         # end for
-
-        import matplotlib.pyplot as plt
-        import numpy as np
 
         # https://stackoverflow.com/a/25009504/3423324
         # This is the ROC curve

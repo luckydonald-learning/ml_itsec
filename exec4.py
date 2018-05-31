@@ -169,32 +169,15 @@ def calc_k_matrix_from_counts(count_spam_files):
     return matrix
 # end def
 
+if __name__ == '__main__':
+    spam_files, good_files = list_files()
+    t_spam_files, t_good_files = list_files(TEST_DATA_FOLDER)
 
-spam_files, good_files = list_files()
-t_spam_files, t_good_files = list_files(TEST_DATA_FOLDER)
-
-#count_text = do_count(split_word(text, [' ', "\n"]))
-count_spam_files = [do_count(file) for file in get_words(TRAIN_DATA_FOLDER, spam_files, delemiters=[" "], per_file=True, omit_words=['Subject:'])]
-calc_k_matrix_from_counts(count_spam_files)
-for d in [1, 2, 3, 4]:
-    # end def
-    print(d)
-    print(compare(spam_files, good_files, z_en,     method=center_of_mass, d=d))
-    print(compare(spam_files, good_files, z_de,     method=center_of_mass, d=d))
-    print(compare(spam_files, good_files, z_nospam, method=center_of_mass, d=d))
-
-
-
-import matplotlib.pyplot as plt
-import numpy as np
-
-# This is the ROC curve
-plt.plot(x,y)
-plt.show()
-
-# This is the AUC
-auc = np.trapz(y,x)
-
-
-
-# "Le Big-Mac. Ha ha ha ha. What do they call a Whopper?"
+    #count_text = do_count(split_word(text, [' ', "\n"]))
+    count_spam_files = [do_count(file) for file in get_words(TRAIN_DATA_FOLDER, spam_files, delemiters=[" "], per_file=True, omit_words=['Subject:'])]
+    calc_k_matrix_from_counts(count_spam_files)
+    for d in [1, 2, 3, 4]:
+        # end def
+        print(d)
+        print(compare(spam_files, good_files, z_en,     method=center_of_mass, d=d))
+        print(compare(spam_files, good_files, z_de,     method=center_of_mass, d=d))
