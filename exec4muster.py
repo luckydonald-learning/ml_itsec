@@ -17,7 +17,7 @@ FOLDER = path.join('..','..',"Machine Learning for Computer Security", "Exercise
 TRAIN_DATA_FOLDER = path.join(FOLDER, 'spam-train')
 TEST_DATA_FOLDER = path.join(FOLDER, 'spam-test')
 CACHE_FILE_WORDS = path.join(FOLDER, 'cache-words.json')
-CACHE_FILE_MORE = path.join(FOLDER, 'cache-more.json')
+CACHE_FILE_CLASSIFIER = path.join(FOLDER, 'cache-classify.json')
 
 DELIMITERS_D = [' ', '\n']  # space
 
@@ -242,10 +242,10 @@ class Classifier(object):
         self._ham = ham
         self._spam = spam
 
-        self._c_ham = self._calc_if_not_cached('c_o_m_ham', self._our_kmat(ham, ham), save=True)
+        self._c_ham = self._calc_if_not_cached('c_o_m_ham', self._kmat_mean(ham, ham), save=True)
         """ the center of mass for ham"""
 
-        self._c_spam = self._calc_if_not_cached('c_o_m_spam', self._our_kmat(spam, spam), save=True)
+        self._c_spam = self._calc_if_not_cached('c_o_m_spam', self._kmat_mean(spam, spam), save=True)
         """ the center of mass for spam"""
 
         logger.debug('center of mass (ham): {ham!r}\ncenter of mass (spam): {spam!r}'.format(
@@ -278,23 +278,26 @@ class Classifier(object):
         return value
     # end def
 
-    def _our_kmat(self, X, Y):
+    def _kmat_mean(self, X, Y):
         def _kmat_inner():
             return kmat(X, Y, self._k_func).mean()
         # end def
         return _kmat_inner
     # end def
 
-    def classify(self, message, mode='classic', threshold=0.0):
+    def classify(self, message, mode='simple', threshold=0.0):
         """
         :return: Tuple with 'ham'/'spam' as first element, and the value as second.
         :rtype: tuple(str, float)
         """
-        value = self._calc_if_not_cached('classify', self._classify, message, save=False)
+        value = self._calc_if_not_cached('classify', self._classify, message, save=False, mode=mode)
         return (ham_or_spam(value, threshold), value)
     # end def
 
-    def _classify(self, message, ):
+    def _classify(self, message, mode):
+        """
+        :rtype: float
+        """
         if mode == 'classic':
             value = self._classic(message)
         elif mode == 'reverse':
@@ -429,7 +432,7 @@ import json
 # load / write cache
 words_cache = Cache(CACHE_FILE_WORDS)
 if not os.path.exists(CACHE_FILE_WORDS):
-    logger.info('no cache file found, generating -data.')
+    logger.info('no cache file found, generating word count data.')
     ham_messages_train = list(read_messages(TRAIN_DATA_FOLDER, suffix='.ham.txt'))
     spam_messages_train = list(read_messages(TRAIN_DATA_FOLDER, suffix='.spam.txt'))
 
@@ -443,7 +446,7 @@ if not os.path.exists(CACHE_FILE_WORDS):
     logger.debug('writing cache file...')
     write_cache(words_cache, CACHE_FILE_WORDS)
 else:
-    logger.info('cache file found.')
+    logger.info('cache file for word count found.')
     words_cache = load_cache(CACHE_FILE_WORDS)
 
     ham_messages_train = [Counter(message) for message in words_cache['train_ham']]
@@ -455,13 +458,13 @@ else:
     logger.info('cache file parsed.')
 # end if
 
+
 def ham_or_spam(score, threshold=0.5):
     return 'ham' if score <= threshold else 'spam'
 # end def
 
 
-#for d in [1, 2, 3, 4]:
-cache = Cache(CACHE_FILE_MORE, do_load=os.path.exists(CACHE_FILE_MORE))
+classifier_cache = Cache(CACHE_FILE_CLASSIFIER, do_load=os.path.exists(CACHE_FILE_CLASSIFIER))
 
 for d in [1, 2, 3, 4]:
     logger.debug('calculating for d={}'.format(d))
@@ -470,7 +473,7 @@ for d in [1, 2, 3, 4]:
         # return bowk(x, y, d, normalize=True)
     # end def
 
-    classifier = Classifier(k, cache=cache, cache_key=['d_{}'.format(d)])
+    classifier = Classifier(k, cache=classifier_cache, cache_key=['d_{}'.format(d)])
     logger.debug('training ham.')
     classifier.train(ham_messages_train, spam_messages_train)
     # for mode in ['classic', 'reverse', 'simple']:
@@ -487,7 +490,7 @@ for d in [1, 2, 3, 4]:
             logger.info('classifyed ham test {}: {}'.format(i, score))
             scores.append(score)
         # end for
-        cache.save()
+        classifier_cache.save()
         logger.debug('classifying spam tests')
         for i, message in enumerate(spam_messages_test):
             labels.append('spam')
@@ -496,7 +499,7 @@ for d in [1, 2, 3, 4]:
             logger.info('classifyed spam test {}: {}'.format(i, score))
             scores.append(score)
         # end for
-        cache.save()
+        classifier_cache.save()
         max_count = len(scores)
         tps = []
         fps = []
