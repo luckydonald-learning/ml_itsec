@@ -479,16 +479,41 @@ for d in [1, 2, 3, 4]:
                     raise ValueError('dafuq: {!r}'.format((label, predicted_label)))
                 # end if
             # end for
-            logging.success(' threshold: {t}\n true negative: {tn}\n false positive: {fp}\n false negative: {fn}\n true positive {tp}'.format(
-                t=threshold, tn=tn, fp=fp, fn=fn, tp=tp
+            max_len = max(len(str(i)) for i in (tn,fp,fn,tp))
+            logging.success('threshold: {t}\n'
+                            'true  negative: {tn:>{len}} ({tn_avg})\n'
+                            'false positive: {fp:>{len}} ({fp_avg})\n'
+                            'false negative: {fn:>{len}} ({fn_avg})\n'
+                            'true  positive: {tp:>{len}} ({tp_avg})'.format(
+                t=threshold, tn=tn, fp=fp, fn=fn, tp=tp, len=max_len,
+                tn_avg=tn/false_count, fp_avg=fp/false_count, fn_avg=fn/true_count, tp_avg=tp/true_count
             ))
             tps.append(tp/true_count)
             fps.append(fp/false_count)
         # end for
 
         # https://stackoverflow.com/a/25009504/3423324
+        # https://stackoverflow.com/a/37113381/3423324
+
+        # This is the AUC (area under curve)
+        auc = np.trapz(fps, tps)
+
         # This is the ROC curve
-        plt.plot(fps, tps)
+        plt.figure()
+        # ROC
+        plt.plot(fps, tps, label='{mode} d={d} (area = {auc:0.2f})'.format(d=d, mode=mode, auc=auc))
+        # diagonal line
+        plt.plot([0, 1], [0, 1], 'k--')
+        # scale to 0.0-1.0
+        plt.xlim([0.0, 1.0])
+        plt.ylim([0.0, 1.05])
+        # axis labels
+        plt.xlabel('False Positive Rate')
+        plt.ylabel('True Positive Rate')
+        # title
+        plt.title('Characteristic for spam detection ROC')
+        plt.legend(loc="lower right")
+        # done
         plt.show()
 
         pass
