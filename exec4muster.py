@@ -236,7 +236,8 @@ def normalized_bow_k(x, z, d=1.0):
 # end def
 
 
-def kmat(X, Y, k=bowk):
+
+def kmat(X, Y, *k_args, k=bowk, **k_kwargs):
     n = len(X)
     m = len(Y)
     mat = np.empty((n,m))
@@ -244,7 +245,7 @@ def kmat(X, Y, k=bowk):
         for j in range(m):  # file_b
             xi = X[i]
             yj = Y[j]
-            mat[i, j] = k(xi, yj)
+            mat[i, j] = k(xi, yj, *k_args, **k_kwargs)
         # end for
     # end for
     return mat
@@ -316,9 +317,9 @@ class Classifier(object):
         return value
     # end def
 
-    def _our_kmat(self, X, Y):
+    def _our_kmat(self, X, Y, *k_args, **k_kwargs):
         def _kmat_inner():
-            return kmat(X, Y, self._k_func).mean()
+            return kmat(X, Y, *k_args, f=self._k_func, **k_kwargs).mean()
         # end def
         return _kmat_inner
     # end def
