@@ -250,11 +250,10 @@ class Classifier(object):
         self._ham = ham
         self._spam = spam
 
-        self._c_ham = self._calc_if_not_cached('c_o_m_ham', self._our_kmat(ham, ham))
-        self._cache.save()
+        self._c_ham = self._calc_if_not_cached('c_o_m_ham', self._our_kmat(ham, ham), save=True)
         """ the center of mass for ham"""
 
-        self._c_spam = self._calc_if_not_cached('c_o_m_spam', self._our_kmat(spam, spam))
+        self._c_spam = self._calc_if_not_cached('c_o_m_spam', self._our_kmat(spam, spam), save=True)
         """ the center of mass for spam"""
         self._cache.save()
 
@@ -262,7 +261,7 @@ class Classifier(object):
             ham=self._c_ham, spam=self._c_spam
         ))
 
-    def _calc_if_not_cached(self, key, func, *args, **kwargs):
+    def _calc_if_not_cached(self, key, func, *args, save=True, **kwargs):
         """
         :param key: Key for the current value
         :param func:
@@ -283,6 +282,8 @@ class Classifier(object):
             value = func(*args, **kwargs)
             cache[key] = value
         # end if
+        if save:
+            self._cache.save()
         return value
     # end def
 
@@ -298,7 +299,7 @@ class Classifier(object):
         :return: Tuple with 'ham'/'spam' as first element, and the value as second.
         :rtype: tuple(str, float)
         """
-        value = self._calc_if_not_cached('classify', self._classify, message)
+        value = self._calc_if_not_cached('classify', self._classify, message, save=False)
         return (ham_or_spam(value, threshold), value)
     # end def
 
@@ -379,7 +380,7 @@ def read_messages(directory, suffix='.spam.txt'):
 from DictObject import DictObject
 
 def write_cache(data, file):
-    logger.info('writeing cache file to {}.'.format(path.abspath(file)))
+    logger.info('writing cache file to {}.'.format(path.abspath(file)))
     with open(file, 'w') as f:
         json.dump(data, f)
         logger.info('cache file written to {}.'.format(path.abspath(file)))
@@ -404,7 +405,7 @@ class Cache(DictObject):
     # end def
 
     def save(self):
-        logger.info('writeing cache file to {}.'.format(path.abspath(self.__file)))
+        logger.info('writing cache file to {}.'.format(path.abspath(self.__file)))
         data = dict(self)
         with open(self.__file, 'w') as f:
             json.dump(data, f)
@@ -507,37 +508,44 @@ for d in [1]:
         max_count = len(scores)
         tps = []
         fps = []
-        for threshold in sorted(scores, reverse=True)[::100]:
+        for threshold in sorted(scores, reverse=True):
 
             fp = 0
             """ false positives 
-            is kein spam, falsch als spam erkannt
+            nein, is kein spam, falsch als spam erkannt
             """
 
             tp = 0
             """ true positives 
-            is spam, richtig erkannt
+            ja, is spam, richtig erkannt
             """
 
             tn = 0
             """ true negatives
-            ist spam, richtig erkannt
+            ja, ist spam, richtig erkannt
             """
 
             fn = 0
             """ false negatives
-            ist spam, falsch als spam erkannt
+            nein, ist spam, falsch als spam erkannt
             """
+
+            false_count = 0
+            true_count = 0
 
             for score, label in zip(scores, labels):
                 predicted_label = ham_or_spam(score, threshold)
                 if (label, predicted_label) == ('ham', 'ham'):
                     tn += 1
+                    false_count += 1
                 elif (label, predicted_label) == ('ham', 'spam'):
                     fp += 1
+                    false_count += 1
                 elif (label, predicted_label) == ('spam', 'ham'):
                     fn += 1
+                    true_count += 1
                 elif (label, predicted_label) == ('spam', 'spam'):
+                    true_count += 1
                     tp += 1
                 else:
                     raise ValueError('dafuq: {!r}'.format((label, predicted_label)))
@@ -546,9 +554,22 @@ for d in [1]:
             logging.success(' threshold: {t}\n true negative: {tn}\n false positive: {fp}\n false negative: {fn}\n true positive {tp}'.format(
                 t=threshold, tn=tn, fp=fp, fn=fn, tp=tp
             ))
-            tps.append(tp/max_count)
-            fps.append(fp/max_count)
+            tps.append(tp/true_count)
+            fps.append(fp/false_count)
         # end for
+
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        # https://stackoverflow.com/a/25009504/3423324
+        # This is the ROC curve
+        plt.plot(fps, tps)
+        plt.show()
+
+        pass
+
+        # This is the AUC (area under curve)
+        # auc = np.trapz(y, x)
     # end for
 # end def
 
