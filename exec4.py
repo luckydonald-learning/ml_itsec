@@ -20,25 +20,24 @@ def list_files(dir=TRAIN_DATA_FOLDER):
     good_files = []
     for f in os.listdir(dir):
         if f.endswith(".ham.txt"):
-            good_files.append(f)
+            good_files.append(os.path.join(TRAIN_DATA_FOLDER, f))
         elif f.endswith(".spam.txt"):
-            spam_files.append(f)
+            spam_files.append(os.path.join(TRAIN_DATA_FOLDER, f))
         else:
-            print("ERROR: file {} neiter ham nor spam.".format(f))
+            raise ValueError("ERROR: file {} neiter ham nor spam.".format(f))
         # end if
     # end for
     return spam_files, good_files
 # end def
 
 
-def get_words(folder, filename_list, delemiters=[' '], per_file=False, omit_words=[]):
+def get_words(filename_list, delemiters=[' '], per_file=False, omit_words=[]):
     """
     :param per_file: False: Will yield every word in all files. True: Will yield a list of words for each file.
         So either it is a continuous stream of words, or they are grouped into lists by files.
     returns list of words in file
     """
     for file in filename_list:
-        file = path.join(folder, file)
         if per_file:
             words_of_file = []
         # end if
@@ -119,8 +118,8 @@ Barr . EMMANUEL SAMS"""
 
 def compare(spam_files, good_files, text, method=center_of_mass, d=1):
     count_text = do_count(split_word(text, [' ', "\n"]))
-    count_spam = do_count(get_words(TRAIN_DATA_FOLDER, spam_files, delemiters=[" "]))
-    count_good = do_count(get_words(TRAIN_DATA_FOLDER, good_files, delemiters=[" "]))
+    count_spam = do_count(get_words(spam_files, delemiters=[" "]))
+    count_good = do_count(get_words(good_files, delemiters=[" "]))
     alphabet, count_text, count_spam = merge_alphabets(count_text, count_spam)
     alphabet, count_good, count_spam = merge_alphabets(count_good, count_spam)
     alphabet, count_text, count_good = merge_alphabets(count_text, count_good)

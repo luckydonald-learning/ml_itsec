@@ -28,6 +28,13 @@ def split_word(word, delimiters, strip=True, omit_words=[]):
     # end if
     d = delimiters[0]
     words = word.split(d)
+    for w in words_omit(words, omit_words):
+        yield from split_word(w, delimiters[1:])
+    # end for
+# end def
+
+
+def words_omit(words, omit_words):
     for w in words:
         if w == "":  # skip empty splits
             continue
@@ -35,7 +42,7 @@ def split_word(word, delimiters, strip=True, omit_words=[]):
         if w in omit_words:
             continue
         # end if
-        yield from split_word(w, delimiters[1:])
+        yield w
     # end for
 # end def
 

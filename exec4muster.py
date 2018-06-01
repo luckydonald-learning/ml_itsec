@@ -1,13 +1,15 @@
 from luckydonaldUtils.logger import logging
 from matplotlib import pyplot as plt
+from DictObject import DictObject
 from collections import Counter
 import numpy as np
 import math
 import nltk
+import json
 import os
 import re
 
-from exec3 import split_word
+from exec3 import words_omit
 from exec4 import list_files
 
 
@@ -35,35 +37,32 @@ CACHE_FILE_CLASSIFIER = os.path.join(FOLDER, 'cache-classify.json')
 
 DELIMITERS_D = [' ', '\n']  # space
 
+s0 = nltk.stem.PorterStemmer()
+s1 = nltk.stem.SnowballStemmer('english')
 
-def get_words(folder, filename_list, delemiters=[' '], per_file=False, omit_words=[]):
+def get_words(filename_list, delemiters=[' '], omit_words=[]):
     """
     :param per_file: False: Will yield every word in all files. True: Will yield a list of words for each file.
         So either it is a continuous stream of words, or they are grouped into lists by files.
     returns list of words in file
     """
     for file in filename_list:
-        file = os.path.join(folder, file)
-        if per_file:
-            words_of_file = []
+        words_of_file = []
         # end if
-        with open(file, 'r', errors='replace') as f:
-            try:
-                for line in f.readlines():
-                    words = split_word(line, delemiters, strip=True, omit_words=omit_words)
-                    if per_file:
-                        words_of_file.extend(words)
-                    else:
-                        yield from words
-                    # end if
-                # end for
-            except UnicodeDecodeError:
-                print("UnicodeDecodeError: {}".format(file))
-            # end try
+        logger.debug('Loading message {:s}.'.format(file))
+        with open(file, 'r', encoding='latin-1', errors='replace') as f:
+            message = f.read()
+            # Replace the "Subject: " which is the start of every mail.
+            message.replace('Subject: ', '', 1)
+            # Split at non-word characters
+            words = words_omit(re.split("\W+", message), '')
+            words = (w.lower() for w in words)
+            words = filter(word_filter, words)
+            words = (s0.stem(s1.stem(w)) for w in words)
+            words = filter(word_filter, words)
+            X = Counter(words)
+            yield X
         # end with
-        if per_file:
-            yield words_of_file
-        # end if
     # end for
 # end def
 
@@ -183,17 +182,19 @@ class Classifier(object):
         self._ham = ham
         self._spam = spam
 
-        self._c_ham = self._calc_if_not_cached('c_o_m_ham', self._kmat_mean(ham, ham), save=True)
+        self._c_ham = self._calc_if_not_cached('c_o_m_ham', self._kmat_mean(ham, ham))
+        self._cache.save_if_changed()
         """ the center of mass for ham"""
 
-        self._c_spam = self._calc_if_not_cached('c_o_m_spam', self._kmat_mean(spam, spam), save=True)
+        self._c_spam = self._calc_if_not_cached('c_o_m_spam', self._kmat_mean(spam, spam))
+        self._cache.save_if_changed()
         """ the center of mass for spam"""
 
         logger.debug('center of mass (ham): {ham!r}\ncenter of mass (spam): {spam!r}'.format(
             ham=self._c_ham, spam=self._c_spam
         ))
 
-    def _calc_if_not_cached(self, key, func, *args, save=True, **kwargs):
+    def _calc_if_not_cached(self, key, func, *args, **kwargs):
         """
         :param key: Key for the current value
         :param func:
@@ -214,8 +215,6 @@ class Classifier(object):
             value = func(*args, **kwargs)
             cache[key] = value
         # end if
-        if save:
-            self._cache.save()
         return value
     # end def
 
@@ -231,7 +230,7 @@ class Classifier(object):
         :return: Tuple with 'ham'/'spam' as first element, and the value as second.
         :rtype: tuple(str, float)
         """
-        value = self._calc_if_not_cached('classify', self._classify, message, save=False, mode=mode)
+        value = self._calc_if_not_cached('classify', self._classify, message, mode=mode)
         return (ham_or_spam(value, threshold), value)
     # end def
 
@@ -302,8 +301,6 @@ def read_messages(directory, suffix='.spam.txt'):
 # end def
 
 
-from DictObject import DictObject
-
 def write_cache(data, file):
     logger.info('writing cache file to {}.'.format(os.path.abspath(file)))
     with open(file, 'w') as f:
@@ -312,6 +309,7 @@ def write_cache(data, file):
     # end with
 # end def
 
+
 def load_cache(file):
     with open(file, 'r') as f:
         cache = json.load(f)
@@ -319,6 +317,7 @@ def load_cache(file):
     logger.info('cache file loaded, parsing data.')
     return cache
 # end def
+
 
 class Cache(DictObject):
     def __init__(self, file, do_load=False, *args, **kwargs):
@@ -386,13 +385,11 @@ class Cache(DictObject):
 
 
 
-import json
-
 # load / write cache
 words_cache = Cache(CACHE_FILE_WORDS)
 if not os.path.exists(CACHE_FILE_WORDS):
     logger.info('no cache file found, generating word count data.')
-    spam_files, good_files = list_files()
+    spam_files, good_files = list_files(TRAIN_DATA_FOLDER)
     ham_messages_train = list(read_messages(TRAIN_DATA_FOLDER, suffix='.ham.txt'))
     spam_messages_train = list(read_messages(TRAIN_DATA_FOLDER, suffix='.spam.txt'))
 
@@ -426,6 +423,19 @@ def ham_or_spam(score, threshold=0.5):
 
 
 classifier_cache = Cache(CACHE_FILE_CLASSIFIER, do_load=os.path.exists(CACHE_FILE_CLASSIFIER))
+
+# This is the ROC curve
+plt.figure()
+# diagonal line
+plt.plot([0, 1], [0, 1], 'k--')
+# scale to 0.0-1.0
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+# axis labels
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+# title
+plt.title('Characteristic for spam detection ROC')
 
 for d in [1, 2, 3, 4]:
     logger.debug('calculating for d={}'.format(d))
@@ -507,15 +517,15 @@ for d in [1, 2, 3, 4]:
                     raise ValueError('dafuq: {!r}'.format((label, predicted_label)))
                 # end if
             # end for
-            max_len = max(len(str(i)) for i in (tn,fp,fn,tp))
-            logging.success('threshold: {t}\n'
-                            'true  negative: {tn:>{len}} ({tn_avg})\n'
-                            'false positive: {fp:>{len}} ({fp_avg})\n'
-                            'false negative: {fn:>{len}} ({fn_avg})\n'
-                            'true  positive: {tp:>{len}} ({tp_avg})'.format(
-                t=threshold, tn=tn, fp=fp, fn=fn, tp=tp, len=max_len,
-                tn_avg=tn/false_count, fp_avg=fp/false_count, fn_avg=fn/true_count, tp_avg=tp/true_count
-            ))
+            # max_len = max(len(str(i)) for i in (tn,fp,fn,tp))
+            # logging.success('threshold: {t}\n'
+            #                 'true  negative: {tn:>{len}} ({tn_avg})\n'
+            #                 'false positive: {fp:>{len}} ({fp_avg})\n'
+            #                 'false negative: {fn:>{len}} ({fn_avg})\n'
+            #                 'true  positive: {tp:>{len}} ({tp_avg})'.format(
+            #     t=threshold, tn=tn, fp=fp, fn=fn, tp=tp, len=max_len,
+            #     tn_avg=tn/false_count, fp_avg=fp/false_count, fn_avg=fn/true_count, tp_avg=tp/true_count
+            # ))
             tps.append(tp/true_count)
             fps.append(fp/false_count)
         # end for
@@ -524,30 +534,17 @@ for d in [1, 2, 3, 4]:
         # https://stackoverflow.com/a/37113381/3423324
 
         # This is the AUC (area under curve)
-        auc = np.trapz(fps, tps)
+        auc = np.trapz(tps, fps)
 
-        # This is the ROC curve
-        plt.figure()
+
         # ROC
         plt.plot(fps, tps, label='{mode} d={d} (area = {auc:0.2f})'.format(d=d, mode=mode, auc=auc))
-        # diagonal line
-        plt.plot([0, 1], [0, 1], 'k--')
-        # scale to 0.0-1.0
-        plt.xlim([0.0, 1.0])
-        plt.ylim([0.0, 1.05])
-        # axis labels
-        plt.xlabel('False Positive Rate')
-        plt.ylabel('True Positive Rate')
-        # title
-        plt.title('Characteristic for spam detection ROC')
         plt.legend(loc="lower right")
         # done
-        plt.show()
 
         pass
-
-        # This is the AUC (area under curve)
-        # auc = np.trapz(y, x)
     # end for
-# end def
+# end for
+
+plt.show()
 
