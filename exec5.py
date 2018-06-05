@@ -111,7 +111,7 @@ subplt = fig.add_subplot(3,1,3)
 subplt.plot(pos['x'], pos['y'], 'g.', label='postive')
 subplt.plot(neg['x'], neg['y'], 'r.', label='negative')
 
-subplt.plot([0, w[0]*0.05], [0, w[1]*0.05], label='w')
+subplt.plot([0, w[0]*2], [0, w[1]*-2], label='w')
 subplt.legend(loc="lower right")
 
 plt.show()
