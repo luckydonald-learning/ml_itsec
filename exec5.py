@@ -158,18 +158,36 @@ class Perception(object):
     def draw_training(self):
         in_pos = {'x': [], 'y': []}
         in_neg = {'x': [], 'y': []}
+        if self.train_set is not None:
+            for i, element in enumerate(self.train_set[DATA]):
+                x = element[0]
+                y = element[1]
+                if self.train_set[LABELS][0][i] == -1:
+                    in_neg['x'].append(x)
+                    in_neg['y'].append(y)
+                else:
+                    in_pos['x'].append(x)
+                    in_pos['y'].append(y)
+                # end if
+            # end for
+        # end if
 
-        for i, element in enumerate(self.train_set[DATA]):
-            x = element[0]
-            y = element[1]
-            if self.train_set[LABELS][0][i] == -1:
-                in_neg['x'].append(x)
-                in_neg['y'].append(y)
-            else:
-                in_pos['x'].append(x)
-                in_pos['y'].append(y)
-            # end if
-        # end for
+        test_pos = {'x': [], 'y': []}
+        test_neg = {'x': [], 'y': []}
+
+        if self.test_set is not None:
+            for i, element in enumerate(self.test_set[DATA]):
+                x = element[0]
+                y = element[1]
+                if self.test_set[LABELS][0][i] == -1:
+                    test_neg['x'].append(x)
+                    test_neg['y'].append(y)
+                else:
+                    test_pos['x'].append(x)
+                    test_pos['y'].append(y)
+                # end if
+            # end for
+        # end if
 
         bg_pos = {'x': [], 'y': []}
         bg_neg = {'x': [], 'y': []}
@@ -216,10 +234,12 @@ class Perception(object):
 
         subplt = fig.add_subplot(layout[1:, :])
         subplt.set_title('Feature Space')
-        subplt.plot(bg_pos['x'], bg_pos['y'], color=(0.7, 1, 0.7), marker='o', label='negative background')
-        subplt.plot(bg_neg['x'], bg_neg['y'], color=(1, 0.7, 0.7), marker='o', label='postive background')
-        subplt.plot(in_pos['x'], in_pos['y'], 'g.', label='postive')
-        subplt.plot(in_neg['x'], in_neg['y'], 'r.', label='negative')
+        subplt.plot(bg_pos['x'], bg_pos['y'], color=(0.7, 1, 0.7), marker='o', linestyle='', label='negative background')
+        subplt.plot(bg_neg['x'], bg_neg['y'], color=(1, 0.7, 0.7), marker='o', linestyle='', label='postive background')
+        subplt.plot(test_pos['x'], test_pos['y'], color=(0, 1, 1), marker='.', linestyle='', label='postive test')
+        subplt.plot(test_neg['x'], test_neg['y'], color=(1, 0, 1), marker='.', linestyle='', label='negative test')
+        subplt.plot(in_pos['x'], in_pos['y'], color=(0.0, 1, 0.0), marker='.', linestyle='', label='postive learn')
+        subplt.plot(in_neg['x'], in_neg['y'], color=(1.0, 0, 0.0), marker='.', linestyle='', label='negative learn')
         subplt.set_xlabel(text)
         subplt.legend(loc="upper right")
         plt.show()
