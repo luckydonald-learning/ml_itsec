@@ -1,5 +1,6 @@
 import os
 import numpy as np
+from matplotlib import pyplot as plt
 
 
 def balanced_error_rate(F, T):
@@ -58,14 +59,55 @@ w = np.array([0.754645564, 0.087735])  # random, I hit my head on the keyboard.
 
 N = len(train_set[LABELS][0])
 
+w0 = []
+w1 = []
 
 for i in range(N):
     x0, x1 = train_set[DATA][i]  # (x0, x1)
     ϕ = np.array([x0, x1])  # feature vector
 
-    f = np.sign(sum(feature * w for feature in [x0, x1]))  # prediction
+    f = np.sign(sum(feature * w[_i] for _i, feature in enumerate([x0, x1])))  # prediction
 
     yi = train_set[LABELS][0][i]  # label
 
     if f != yi:  # label != prediction
         w = w + yi * ϕ
+    # end if
+    w0.append(w[0])
+    w1.append(w[1])
+# end for
+
+
+# This is the ROC curve
+fig = plt.figure()
+subplt = fig.add_subplot(3,1,1)
+subplt.plot([_[0] for _ in train_set[DATA]], label='x0')
+subplt.plot([_[1] for _ in train_set[DATA]], label='x1')
+
+subplt = fig.add_subplot(3,1,2)
+subplt.plot(w0, label='w0')
+subplt.plot(w1, label='w1')
+
+
+subplt = fig.add_subplot(3,1,3)
+
+pos = [[], []]
+neg = [[], []]
+
+for i, element in enumerate(train_set[DATA]):
+    x = element[0]
+    y = element[1]
+    if train_set[LABELS][0][i] == -1:
+        pos.append([x,y])
+    else:
+        neg.append([x,y])
+    # end if
+# end for
+subplt.plot(pos[0], pos[1], label='x0,x1 +1')
+
+#subplt.plot([_[0] for i, _ in enumerate(train_set[DATA])], [_[1] for _ in train_set[DATA] if train_set[LABELS][0][i] == +1], label='x0,x1 +1')
+#subplt.plot([_[0] for i, _ in enumerate(train_set[DATA])], [_[1] for _ in train_set[DATA] if train_set[LABELS][0][i] == -1][0], label='x0,x1 -1')
+#subplt.plot([0,0], w, label='w')
+
+#subplt.legend(loc="lower right")
+plt.show()
