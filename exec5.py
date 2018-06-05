@@ -80,7 +80,7 @@ class Perception(object):
         self.positives, self.negatives = None, None
 
         # self.balanced_error_rate()
-        self.error_rate = None
+        self._balanced_error_rate = None
     # end def
 
     def f(self, features):
@@ -140,19 +140,26 @@ class Perception(object):
         return self.positives, self.negatives
     # end def
 
+    @property
     def balanced_error_rate(self):
         """
          Balanced Error Rate (BER)
+
+        :raises ValueError: If something we depend on is not there.
         :return: float
         """
-        if self.positives is None:
-            raise ValueError('no positives calculated.')
-        # end if
-        if self.negatives is None:
-            raise ValueError('no negatives calculated.')
-        # end if
-        self.error_rate = balanced_error_rate(self.positives, self.negatives)
-        return self.error_rate
+        if self._balanced_error_rate is None:
+            if self.positives is None:
+                raise ValueError('no positives calculated.')
+                self.test()
+            # end if
+            if self.negatives is None:
+                raise ValueError('no negatives calculated.')
+                self.test()
+            # end if
+            self._balanced_error_rate = balanced_error_rate(self.positives, self.negatives)
+        # end def
+        return self._balanced_error_rate
     # end def
 
     def draw_training(self):
@@ -191,8 +198,8 @@ class Perception(object):
 
         bg_pos = {'x': [], 'y': []}
         bg_neg = {'x': [], 'y': []}
-        for x in range(0, 80):
-            for y in range(0, 70):
+        for x in range(-10, 90):
+            for y in range(-10, 80):
                 if f(self.w, [x, y]) == -1:
                     bg_neg['x'].append(x * 0.1)
                     bg_neg['y'].append(y * 0.1)
@@ -207,17 +214,19 @@ class Perception(object):
         if self.w is not None:
             text = ''
             for i in range(len(self.w)):
-                text += "x{i} = {val!r}\n".format(i = i, val=self.w[i])
+                text += "w{i} = {val!r}\n".format(i = i, val=self.w[i])
             # end for
-            if self.error_rate is not None:
-                text += 'BER={ber}'.format(ber=self.error_rate)
-            # end if
+            try:
+                text += 'BER={ber}'.format(ber=self.balanced_error_rate)
+            except ValueError:
+                pass
+            # end try
         else:
-            if self.error_rate is not None:
-                text = 'BER={ber}'.format(ber=self.error_rate)
-            else:
+            try:
+                text = 'BER={ber}'.format(ber=self.balanced_error_rate)
+            except ValueError:
                 text = ''
-            # end if
+            # end try
         # end if
         text = None if len(text) == 0 else text
 
@@ -269,12 +278,12 @@ class Perception(object):
         :param other:
         :return:
         """
-        assert isinstance(other, Perception)
-        if self.error_rate is None:
-            raise ValueError('no error rate calculated.')
+        if isinstance(other, Perception):
+            other = other.balanced_error_rate
         # end if
-        assert other.error_rate is not None
-        return self.error_rate > other.error_rate
+        if not isinstance(other, float):
+            raise ValueError('other is wrong type (neither {clazz} nor float)'.format(clazz=self.__class__.__name__))
+        return self.balanced_error_rate > other
     # end def
 # end class
 
@@ -291,22 +300,36 @@ def main():
         [0.01, 4.56492131],
         [7.45923757, 7.02602091],
         [7.20224935, 3.38816243],
-        [8.67041419, 2.38209922]
+        [8.67041419, 2.38209922],
+        [9.257037201559537, 0.3442845],
     ]
     ps = []
-    for i in range(10):
-        ps.append(Perception(train_set=train_set, start_w=randoms[i], test_set=test_set))
-        ps[i].train()
-        ps[i].test()
-        print(ps[i].balanced_error_rate())
+    for i in range(len(randoms)):
+        p = Perception(train_set=train_set, start_w=randoms[i], test_set=test_set)
+        p.train()
+        p.test()
+        print('The one with weight {w!r} got a balanced error rate of {ber!r}.'.format(
+            w=list(p.w), ber=p.balanced_error_rate
+        ))
+        ps.append(p)
+    # end for
+
+    for i in range(1000):
+        p = Perception(train_set=train_set, test_set=test_set)  # random start weight
+        p.train()
+        p.test()
+        print('The one with weight {w!r} got a balanced error rate of {ber!r}.'.format(
+            w=list(p.w), ber=p.balanced_error_rate
+        ))
+        ps.append(p)
     # end for
 
     # lowest rate is best rate.
     ps = list(sorted(ps))
-    for p in ps:
+    for p in ps[:-10:100] + ps[-10:]:
         p.draw_training()
     # end for
-    print('Best is the one with weight {w!r}, it got the lowest balanced error rate of {ber!r}'.format(w=list(ps[-1].w), ber=ps[-1].error_rate))
+    print('Best is the one with weight {w!r}, it got the lowest balanced error rate of {ber!r}'.format(w=list(ps[-1].w), ber=ps[-1].balanced_error_rate))
 # end def
 
 
