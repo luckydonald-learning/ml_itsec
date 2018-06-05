@@ -62,13 +62,15 @@ class Perception(object):
 
     def __init__(self, train_set=None, start_w=None, test_set=None):
         # train()
+        self.history_changes = None
         self.history_w1 = []
         self.history_w0 = []
         if start_w:
-            self.w = np.array(start_w)
+            self.start_w = np.array(start_w)
         else:
-            self.w = self.generate_random_tuple()
+            self.start_w = self.generate_random_tuple()
         # end if
+        self.w = None
         if train_set is not None:
             self.train_set = train_set
         # end if
@@ -91,10 +93,16 @@ class Perception(object):
         if self.train_set is None:
             raise ValueError('no training set.')
         # end if
+        if self.start_w is None:
+            raise ValueError('no initial weight vector set.')
+        # end if
+        self.w = self.start_w
+
         N = len(self.train_set[LABELS][0])
 
         self.history_w1.append(self.w[0])
         self.history_w0.append(self.w[1])
+        self.history_changes = 0 if self.history_changes is None else self.history_changes
 
         for i in range(N):
             ϕ = self.train_set[DATA][i]  # (x0, x1)
@@ -102,6 +110,7 @@ class Perception(object):
             label = self.train_set[LABELS][0][i]  # label yi
 
             if prediction != label:  # label != prediction
+                self.history_changes += 1
                 self.w = self.w + label * ϕ
             # end if
             self.history_w0.append(self.w[0])
@@ -211,24 +220,27 @@ class Perception(object):
         # end for
 
         # generate label text
+        text = ''
+        if self.start_w is not None:
+            for i in range(len(self.start_w)):
+                text += "s{i} = {val!r}\n".format(i=i, val=self.start_w[i])
+            # end for
+        # end for
         if self.w is not None:
-            text = ''
             for i in range(len(self.w)):
                 text += "w{i} = {val!r}\n".format(i = i, val=self.w[i])
             # end for
-            try:
-                text += 'BER = {ber}'.format(ber=self.balanced_error_rate)
-            except ValueError:
-                pass
-            # end try
-        else:
-            try:
-                text = 'BER = {ber}'.format(ber=self.balanced_error_rate)
-            except ValueError:
-                text = ''
-            # end try
         # end if
-        text = None if len(text) == 0 else text
+        if self.history_changes is not None:
+            text += "w changes: {i}\n".format(i=self.history_changes)
+        # end for
+
+        try:
+            text += 'BER = {ber}\n'.format(ber=self.balanced_error_rate)
+        except ValueError:
+            text = ''
+        # end try
+        text = None if len(text) == 0 else text.strip()
 
         print('lel')
         layout = GridSpec(3, 4)
@@ -270,12 +282,21 @@ class Perception(object):
         :param other:
         :return:
         """
-        if isinstance(other, Perception):
-            other = other.balanced_error_rate
+        if isinstance(other, float):
+            return self.balanced_error_rate > other
         # end if
-        if not isinstance(other, float):
+        if not isinstance(other, self.__class__):
             raise ValueError('other is wrong type (neither {clazz} nor float)'.format(clazz=self.__class__.__name__))
-        return self.balanced_error_rate > other
+        # end if
+
+        if (
+            self.balanced_error_rate == other.balanced_error_rate
+            and self.history_changes is not None
+            and other.history_changes is not None
+        ):
+            return self.history_changes < other.history_changes
+        # end if
+        return self.balanced_error_rate < other.balanced_error_rate
     # end def
 # end class
 
@@ -294,6 +315,7 @@ def main():
         [7.20224935, 3.38816243],
         [8.67041419, 2.38209922],
         [9.257037201559537, 0.3442845],
+        [2.639494716122672, -2.577715365455056],
     ]
     ps = []
     for i in range(len(randoms)):
@@ -317,9 +339,10 @@ def main():
     # end for
 
     # lowest rate is best rate.
-    ps = list(sorted(ps))
+    ps = list(sorted(ps, reverse=True))
     for p in ps[:-10:100] + ps[-10:]:
         p.draw_training().show()
+        pass
     # end for
     print('Best is the one with weight {w!r}, it got the lowest balanced error rate of {ber!r}'.format(w=list(ps[-1].w), ber=ps[-1].balanced_error_rate))
 # end def
