@@ -78,6 +78,9 @@ class Perception(object):
             self.test_set = test_set
         # end if
         self.positives, self.negatives = None, None
+
+        # self.balanced_error_rate()
+        self.error_rate = None
     # end def
 
     def f(self, features):
@@ -138,10 +141,13 @@ class Perception(object):
     # end def
 
     def balanced_error_rate(self):
-        return balanced_error_rate(self.positives, self.negatives)
+        """
+         Balanced Error Rate (BER)
+        :return: float
+        """
+        self.error_rate = balanced_error_rate(self.positives, self.negatives)
+        return self.error_rate
     # end def
-
-
 
     def draw_training(self):
         in_pos = {'x': [], 'y': []}
@@ -198,6 +204,17 @@ class Perception(object):
         subplt.legend(loc="upper right")
         plt.show()
     # end def
+
+    def __lt__(self, other):
+        """
+        x<y calls x.__lt__(y)
+        :param other:
+        :return:
+        """
+        assert isinstance(other, Perception)
+        assert other.error_rate is not None
+        return self.error_rate > other.error_rate
+    # end def
 # end class
 
 
@@ -221,7 +238,10 @@ def main():
         p.append(Perception(train_set=train_set, start_w=randoms[i], test_set=test_set))
         p[i].train()
         p[i].draw_training()
-        error_rate = p[0].balanced_error_rate()
+        print(p[i].balanced_error_rate())
+        if winner is None or p[i] < winner:
+            winner = p[i]
+        # end if
         # lowest rate is best rate.
     # end for
     w = np.array([4.42, 2.3])  # random, I hit my head on the keyboard, another time
