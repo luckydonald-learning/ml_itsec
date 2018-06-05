@@ -217,13 +217,13 @@ class Perception(object):
                 text += "w{i} = {val!r}\n".format(i = i, val=self.w[i])
             # end for
             try:
-                text += 'BER={ber}'.format(ber=self.balanced_error_rate)
+                text += 'BER = {ber}'.format(ber=self.balanced_error_rate)
             except ValueError:
                 pass
             # end try
         else:
             try:
-                text = 'BER={ber}'.format(ber=self.balanced_error_rate)
+                text = 'BER = {ber}'.format(ber=self.balanced_error_rate)
             except ValueError:
                 text = ''
             # end try
@@ -248,15 +248,12 @@ class Perception(object):
 
         subplt = fig.add_subplot(layout[1:, :3])
         subplt.set_title('Feature Space')
-        l = list()
-        l.append(subplt.plot(bg_pos['x'], bg_pos['y'], color=(0.7, 1, 0.7), marker='o', linestyle='', label='postive background')[0])
-        l.append(subplt.plot(bg_neg['x'], bg_neg['y'], color=(1, 0.7, 0.7), marker='o', linestyle='', label='negative background')[0])
-        l.append(subplt.plot(test_pos['x'], test_pos['y'], color=(0, 1, 1), marker='.', linestyle='', label='postive test')[0])
-        l.append(subplt.plot(test_neg['x'], test_neg['y'], color=(1, 0, 1), marker='.', linestyle='', label='negative test')[0])
-        l.append(subplt.plot(in_pos['x'], in_pos['y'], color=(0.0, 1, 0.0), marker='.', linestyle='', label='postive learn')[0])
-        l.append(subplt.plot(in_neg['x'], in_neg['y'], color=(1.0, 0, 0.0), marker='.', linestyle='', label='negative learn')[0])
-        #lgd = subplt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-        # subplt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05), ncol=5)
+        subplt.plot(bg_pos['x'], bg_pos['y'], color=(0.7, 1, 0.7), marker='o', linestyle='', label='postive background')
+        subplt.plot(bg_neg['x'], bg_neg['y'], color=(1, 0.7, 0.7), marker='o', linestyle='', label='negative background')
+        subplt.plot(test_pos['x'], test_pos['y'], color=(0, 1, 1), marker='.', linestyle='', label='postive test')
+        subplt.plot(test_neg['x'], test_neg['y'], color=(1, 0, 1), marker='.', linestyle='', label='negative test')
+        subplt.plot(in_pos['x'], in_pos['y'], color=(0.0, 1, 0.0), marker='.', linestyle='', label='postive learn')
+        subplt.plot(in_neg['x'], in_neg['y'], color=(1.0, 0, 0.0), marker='.', linestyle='', label='negative learn')
 
         legendplt = fig.add_subplot(layout[1:, 3:])
         # Put a legend to the right of the current axis
@@ -264,12 +261,7 @@ class Perception(object):
         legendplt.legend(*subplt.get_legend_handles_labels(), loc='center', title=text)
         legendplt.set_xlabel(text)
 
-        #box = subplt.get_position()
-        #subplt.set_position([box.x0, box.y0, box.width * 0.5, box.height])
-        # subplt.legend(loc="upper right")
-        #subplt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
-
-        plt.show()
+        return fig
     # end def
 
     def __lt__(self, other):
@@ -327,7 +319,7 @@ def main():
     # lowest rate is best rate.
     ps = list(sorted(ps))
     for p in ps[:-10:100] + ps[-10:]:
-        p.draw_training()
+        p.draw_training().show()
     # end for
     print('Best is the one with weight {w!r}, it got the lowest balanced error rate of {ber!r}'.format(w=list(ps[-1].w), ber=ps[-1].balanced_error_rate))
 # end def
