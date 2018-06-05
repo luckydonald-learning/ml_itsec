@@ -479,21 +479,25 @@ for d in [1, 2, 3, 4]:
             fp = 0
             """ false positives 
             nein, is kein spam, falsch als spam erkannt
+            F1 = -1 als  1 erkannt | FalseNeg
             """
 
             tp = 0
             """ true positives 
             ja, is spam, richtig erkannt
+            T 1 =  1 als  1 erkannt | TruePos
             """
 
             tn = 0
             """ true negatives
-            ja, ist spam, richtig erkannt
+            ja, ist kein spam, richtig erkannt
+            T-1 = -1 als -1 erkannt | TrueNeg
             """
 
             fn = 0
             """ false negatives
-            nein, ist spam, falsch als spam erkannt
+            nein, ist kein spam, falsch als spam erkannt
+            F-1 =  1 als -1 erkannt | FalseNeg
             """
 
             false_count = 0

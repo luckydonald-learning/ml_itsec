@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 from matplotlib.gridspec import GridSpec
 
 
-def balanced_error_rate(F, T):
+def balanced_error_rate(T, F):
     """
     Where Ti and Fi are the number of correctly and incorrectly
     classified data points from class i ∈ {−1, 1} respectively.
@@ -27,14 +27,6 @@ f(row) = sign(⟨ϕ(row), w⟩) = sign(sum((x0, x1) * w)
        = sign(sum(rows[i] * w[i] for i in range(N))
 """
 
-
-
-def absum(N, a, b):
-    result = 0.0
-    for i in range(N):
-        result += a[i] * b[i]
-    # end for
-    return result
 
 print('lol')
 train_set = np.load(os.path.join(FOLDER, 'train.npy'))
@@ -69,6 +61,7 @@ class Perception(object):
     # end def
 
     def __init__(self, train_set=None, start_w=None, test_set=None):
+        # train()
         self.history_w1 = []
         self.history_w0 = []
         if start_w:
@@ -79,9 +72,12 @@ class Perception(object):
         if train_set:
             self.train_set = train_set
         # end if
+
+        # test()
         if test_set:
             self.test_set = test_set
         # end if
+        self.positives, self.negatives = None, None
     # end def
 
     def f(self, features):
@@ -98,11 +94,8 @@ class Perception(object):
         self.history_w0.append(self.w[1])
 
         for i in range(N):
-            x0, x1 = self.train_set[DATA][i]  # (x0, x1)
-            ϕ = np.array([x0, x1])  # feature
-
+            ϕ = self.train_set[DATA][i]  # (x0, x1)
             prediction = self.f(ϕ)
-
             label = self.train_set[LABELS][0][i]  # label yi
 
             if prediction != label:  # label != prediction
@@ -123,6 +116,31 @@ class Perception(object):
         # end if
 
         N = len(self.test_set[LABELS][0])
+
+        self.negatives = {-1: 0, 1: 0}  # F: false, wrong detected.  Key: the assumed value
+        self.positives = {-1: 0, 1: 0}  # T: true, correct detected. Key: the assumed value
+
+        for i in range(N):
+            ϕ = self.test_set[DATA][i]  # (x0, x1)
+            prediction = self.f(ϕ)
+
+            label = self.test_set[LABELS][0][i]  # label yi
+
+            if prediction != label:
+                # is wrong
+                self.negatives[prediction] += 1
+            else:
+                # is correct
+                self.positives[prediction] += 1
+            # end if
+        # end for
+        return self.positives, self.negatives
+    # end def
+
+    def balanced_error_rate(self):
+        return balanced_error_rate(self.positives, self.negatives)
+    # end def
+
 
 
     def draw_training(self):
@@ -198,13 +216,13 @@ def main():
         [8.67041419, 2.38209922]
     ]
     p = []
+    winner = None
     for i in range(10):
-        F = {}  # false, wrong detected.  Key: the assumed value
-        T = {}  # true, correct detected. Key: the assumed value
-        p.append(Perception(train_set, start_w=randoms[i]))
+        p.append(Perception(train_set=train_set, start_w=randoms[i], test_set=test_set))
         p[i].train()
         p[i].draw_training()
-        for i in
+        error_rate = p[0].balanced_error_rate()
+        # lowest rate is best rate.
     # end for
     w = np.array([4.42, 2.3])  # random, I hit my head on the keyboard, another time
 
