@@ -69,12 +69,12 @@ class Perception(object):
         else:
             self.w = self.generate_random_tuple()
         # end if
-        if train_set:
+        if train_set is not None:
             self.train_set = train_set
         # end if
 
         # test()
-        if test_set:
+        if test_set is not None:
             self.test_set = test_set
         # end if
         self.positives, self.negatives = None, None
@@ -88,7 +88,7 @@ class Perception(object):
     # end def
 
     def train(self):
-        if not self.train_set:
+        if self.train_set is None:
             raise ValueError('no training set.')
         # end if
         N = len(self.train_set[LABELS][0])
@@ -111,10 +111,10 @@ class Perception(object):
     # end def
 
     def test(self):
-        if not self.test_set:
+        if self.test_set is None:
             raise ValueError('no test set.')
         # end if
-        if not self.w:
+        if self.w is None:
             raise ValueError('no weight vector.')
         # end if
 
@@ -131,10 +131,10 @@ class Perception(object):
 
             if prediction != label:
                 # is wrong
-                self.negatives[prediction] += 1
+                self.negatives[label] += 1
             else:
                 # is correct
-                self.positives[prediction] += 1
+                self.positives[label] += 1
             # end if
         # end for
         return self.positives, self.negatives
@@ -145,6 +145,12 @@ class Perception(object):
          Balanced Error Rate (BER)
         :return: float
         """
+        if self.positives is None:
+            raise ValueError('no positives calculated.')
+        # end if
+        if self.negatives is None:
+            raise ValueError('no negatives calculated.')
+        # end if
         self.error_rate = balanced_error_rate(self.positives, self.negatives)
         return self.error_rate
     # end def
@@ -179,10 +185,23 @@ class Perception(object):
                 # end if
             # end for
         # end for
+        if self.w is not None:
+            text = 'w=[{w0:.4}, {w1:.4}]'.format(w0=self.w[0], w1=self.w[1])
+            if self.error_rate is not None:
+                text += ', BER={ber}'.format(ber=self.error_rate)
+            # end if
+        else:
+            if self.error_rate is not None:
+                text = 'BER={ber}'.format(ber=self.error_rate)
+            else:
+                text = ''
+            # end if
+        # end if
 
         print('lel')
         layout = GridSpec(3, 2)
         fig = plt.figure()
+
         subplt = fig.add_subplot(layout[0, 0])
         subplt.title.set_text('Training data')
         subplt.plot([_[0] for _ in self.train_set[DATA]], '.', label='x0')
@@ -196,11 +215,12 @@ class Perception(object):
         subplt.legend(loc="lower right")
 
         subplt = fig.add_subplot(layout[1:, :])
-        subplt.title.set_text('Feature Space')
+        subplt.set_title('Feature Space')
         subplt.plot(bg_pos['x'], bg_pos['y'], color=(0.7, 1, 0.7), marker='o', label='negative background')
         subplt.plot(bg_neg['x'], bg_neg['y'], color=(1, 0.7, 0.7), marker='o', label='postive background')
         subplt.plot(in_pos['x'], in_pos['y'], 'g.', label='postive')
         subplt.plot(in_neg['x'], in_neg['y'], 'r.', label='negative')
+        subplt.set_xlabel(text)
         subplt.legend(loc="upper right")
         plt.show()
     # end def
@@ -212,6 +232,9 @@ class Perception(object):
         :return:
         """
         assert isinstance(other, Perception)
+        if self.error_rate is None:
+            raise ValueError('no error rate calculated.')
+        # end if
         assert other.error_rate is not None
         return self.error_rate > other.error_rate
     # end def
@@ -227,7 +250,7 @@ def main():
         [4.13495359, 8.62620918],
         [5.20900703, 3.12870205],
         [4.49144523, 7.13199102],
-        [0, 4.56492131],
+        [0.01, 4.56492131],
         [7.45923757, 7.02602091],
         [7.20224935, 3.38816243],
         [8.67041419, 2.38209922]
@@ -237,13 +260,19 @@ def main():
     for i in range(10):
         p.append(Perception(train_set=train_set, start_w=randoms[i], test_set=test_set))
         p[i].train()
-        p[i].draw_training()
+        p[i].test()
         print(p[i].balanced_error_rate())
+        p[i].draw_training()
         if winner is None or p[i] < winner:
             winner = p[i]
         # end if
         # lowest rate is best rate.
     # end for
     w = np.array([4.42, 2.3])  # random, I hit my head on the keyboard, another time
+# end def
 
 
+if __name__ == '__main__':
+    print('yoooo')
+    main()
+# end if
