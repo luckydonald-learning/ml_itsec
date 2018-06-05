@@ -59,8 +59,8 @@ w = np.array([0.754645564, 0.087735])  # random, I hit my head on the keyboard.
 
 N = len(train_set[LABELS][0])
 
-w0 = []
-w1 = []
+w0 = [w[0]]
+w1 = [w[1]]
 
 for i in range(N):
     x0, x1 = train_set[DATA][i]  # (x0, x1)
@@ -78,20 +78,6 @@ for i in range(N):
 # end for
 
 
-# This is the ROC curve
-fig = plt.figure()
-subplt = fig.add_subplot(3,1,1)
-subplt.plot([_[0] for _ in train_set[DATA]], label='x0')
-subplt.plot([_[1] for _ in train_set[DATA]], label='x1')
-
-subplt = fig.add_subplot(3,1,2)
-subplt.plot(w0, label='w0')
-subplt.plot(w1, label='w1')
-
-fig = plt.figure()
-
-subplt = fig.add_subplot(3,1,3)
-
 pos = {'x': [], 'y': []}
 neg = {'x': [], 'y': []}
 
@@ -106,12 +92,26 @@ for i, element in enumerate(train_set[DATA]):
         pos['y'].append(y)
     # end if
 # end for
-subplt.plot(pos['x'], pos['y'], label='postive')
-subplt.plot(neg['x'], neg['y'], label='negative')
 
-#subplt.plot([_[0] for i, _ in enumerate(train_set[DATA])], [_[1] for _ in train_set[DATA] if train_set[LABELS][0][i] == +1], label='x0,x1 +1')
-#subplt.plot([_[0] for i, _ in enumerate(train_set[DATA])], [_[1] for _ in train_set[DATA] if train_set[LABELS][0][i] == -1][0], label='x0,x1 -1')
-#subplt.plot([0,0], w, label='w')
 
-#subplt.legend(loc="lower right")
+fig = plt.figure()
+subplt = fig.add_subplot(3,1,1)
+subplt.plot([_[0] for _ in train_set[DATA]], label='x0')
+subplt.plot([_[1] for _ in train_set[DATA]], label='x1')
+subplt.legend(loc="lower right")
+
+
+subplt = fig.add_subplot(3,1,2)
+subplt.plot(w0, label='w0')
+subplt.plot(w1, label='w1')
+subplt.legend(loc="lower right")
+
+
+subplt = fig.add_subplot(3,1,3)
+subplt.plot(pos['x'], pos['y'], 'g.', label='postive')
+subplt.plot(neg['x'], neg['y'], 'r.', label='negative')
+
+subplt.plot([0, w[0]*0.05], [0, w[1]*-0.05], label='w')
+subplt.legend(loc="lower right")
+
 plt.show()
