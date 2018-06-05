@@ -191,7 +191,6 @@ class Perception(object):
 
         bg_pos = {'x': [], 'y': []}
         bg_neg = {'x': [], 'y': []}
-        i = 0
         for x in range(0, 80):
             for y in range(0, 70):
                 if f(self.w, [x, y]) == -1:
@@ -203,10 +202,15 @@ class Perception(object):
                 # end if
             # end for
         # end for
+
+        # generate label text
         if self.w is not None:
-            text = 'w=[{w0:.4}, {w1:.4}]'.format(w0=self.w[0], w1=self.w[1])
+            text = ''
+            for i in range(len(self.w)):
+                text += "x{i} = {val!r}\n".format(i = i, val=self.w[i])
+            # end for
             if self.error_rate is not None:
-                text += ', BER={ber}'.format(ber=self.error_rate)
+                text += 'BER={ber}'.format(ber=self.error_rate)
             # end if
         else:
             if self.error_rate is not None:
@@ -215,33 +219,47 @@ class Perception(object):
                 text = ''
             # end if
         # end if
+        text = None if len(text) == 0 else text
 
         print('lel')
-        layout = GridSpec(3, 2)
+        layout = GridSpec(3, 4)
         fig = plt.figure()
 
-        subplt = fig.add_subplot(layout[0, 0])
+        subplt = fig.add_subplot(layout[0, :2])
         subplt.title.set_text('Training data')
         subplt.plot([_[0] for _ in self.train_set[DATA]], '.', label='x0')
         subplt.plot([_[1] for _ in self.train_set[DATA]], '.', label='x1')
         subplt.legend(loc="lower right")
 
-        subplt = fig.add_subplot(layout[0, 1])
+        subplt = fig.add_subplot(layout[0, 2:])
         subplt.title.set_text('Weight updates')
         subplt.plot(self.history_w0, '.', label='w0')
         subplt.plot(self.history_w1, '.', label='w1')
         subplt.legend(loc="lower right")
 
-        subplt = fig.add_subplot(layout[1:, :])
+        subplt = fig.add_subplot(layout[1:, :3])
         subplt.set_title('Feature Space')
-        subplt.plot(bg_pos['x'], bg_pos['y'], color=(0.7, 1, 0.7), marker='o', linestyle='', label='negative background')
-        subplt.plot(bg_neg['x'], bg_neg['y'], color=(1, 0.7, 0.7), marker='o', linestyle='', label='postive background')
-        subplt.plot(test_pos['x'], test_pos['y'], color=(0, 1, 1), marker='.', linestyle='', label='postive test')
-        subplt.plot(test_neg['x'], test_neg['y'], color=(1, 0, 1), marker='.', linestyle='', label='negative test')
-        subplt.plot(in_pos['x'], in_pos['y'], color=(0.0, 1, 0.0), marker='.', linestyle='', label='postive learn')
-        subplt.plot(in_neg['x'], in_neg['y'], color=(1.0, 0, 0.0), marker='.', linestyle='', label='negative learn')
-        subplt.set_xlabel(text)
-        subplt.legend(loc="upper right")
+        l = list()
+        l.append(subplt.plot(bg_pos['x'], bg_pos['y'], color=(0.7, 1, 0.7), marker='o', linestyle='', label='postive background')[0])
+        l.append(subplt.plot(bg_neg['x'], bg_neg['y'], color=(1, 0.7, 0.7), marker='o', linestyle='', label='negative background')[0])
+        l.append(subplt.plot(test_pos['x'], test_pos['y'], color=(0, 1, 1), marker='.', linestyle='', label='postive test')[0])
+        l.append(subplt.plot(test_neg['x'], test_neg['y'], color=(1, 0, 1), marker='.', linestyle='', label='negative test')[0])
+        l.append(subplt.plot(in_pos['x'], in_pos['y'], color=(0.0, 1, 0.0), marker='.', linestyle='', label='postive learn')[0])
+        l.append(subplt.plot(in_neg['x'], in_neg['y'], color=(1.0, 0, 0.0), marker='.', linestyle='', label='negative learn')[0])
+        #lgd = subplt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        # subplt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05), ncol=5)
+
+        legendplt = fig.add_subplot(layout[1:, 3:])
+        # Put a legend to the right of the current axis
+        legendplt.set_axis_off()
+        legendplt.legend(*subplt.get_legend_handles_labels(), loc='center', title=text)
+        legendplt.set_xlabel(text)
+
+        #box = subplt.get_position()
+        #subplt.set_position([box.x0, box.y0, box.width * 0.5, box.height])
+        # subplt.legend(loc="upper right")
+        #subplt.legend(bbox_to_anchor=(1.05, 1), loc=2, borderaxespad=0.)
+
         plt.show()
     # end def
 
@@ -275,20 +293,20 @@ def main():
         [7.20224935, 3.38816243],
         [8.67041419, 2.38209922]
     ]
-    p = []
-    winner = None
+    ps = []
     for i in range(10):
-        p.append(Perception(train_set=train_set, start_w=randoms[i], test_set=test_set))
-        p[i].train()
-        p[i].test()
-        print(p[i].balanced_error_rate())
-        p[i].draw_training()
-        if winner is None or p[i] < winner:
-            winner = p[i]
-        # end if
-        # lowest rate is best rate.
+        ps.append(Perception(train_set=train_set, start_w=randoms[i], test_set=test_set))
+        ps[i].train()
+        ps[i].test()
+        print(ps[i].balanced_error_rate())
     # end for
-    w = np.array([4.42, 2.3])  # random, I hit my head on the keyboard, another time
+
+    # lowest rate is best rate.
+    ps = list(sorted(ps))
+    for p in ps:
+        p.draw_training()
+    # end for
+    print('Best is the one with weight {w!r}, it got the lowest balanced error rate of {ber!r}'.format(w=list(ps[-1].w), ber=ps[-1].error_rate))
 # end def
 
 
