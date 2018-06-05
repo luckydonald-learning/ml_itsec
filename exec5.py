@@ -96,14 +96,14 @@ for i, element in enumerate(train_set[DATA]):
 
 fig = plt.figure()
 subplt = fig.add_subplot(3,1,1)
-subplt.plot([_[0] for _ in train_set[DATA]], label='x0')
-subplt.plot([_[1] for _ in train_set[DATA]], label='x1')
+subplt.plot([_[0] for _ in train_set[DATA]], '.', label='x0')
+subplt.plot([_[1] for _ in train_set[DATA]], '.', label='x1')
 subplt.legend(loc="lower right")
 
 
 subplt = fig.add_subplot(3,1,2)
-subplt.plot(w0, label='w0')
-subplt.plot(w1, label='w1')
+subplt.plot(w0, '.', label='w0')
+subplt.plot(w1, '.', label='w1')
 subplt.legend(loc="lower right")
 
 
@@ -111,7 +111,7 @@ subplt = fig.add_subplot(3,1,3)
 subplt.plot(pos['x'], pos['y'], 'g.', label='postive')
 subplt.plot(neg['x'], neg['y'], 'r.', label='negative')
 
-subplt.plot([0, w[0]*0.05], [0, w[1]*-0.05], label='w')
+subplt.plot([0, w[0]*0.05], [0, w[1]*0.05], label='w')
 subplt.legend(loc="lower right")
 
 plt.show()
