@@ -88,22 +88,26 @@ subplt = fig.add_subplot(3,1,2)
 subplt.plot(w0, label='w0')
 subplt.plot(w1, label='w1')
 
+fig = plt.figure()
 
 subplt = fig.add_subplot(3,1,3)
 
-pos = [[], []]
-neg = [[], []]
+pos = {'x': [], 'y': []}
+neg = {'x': [], 'y': []}
 
 for i, element in enumerate(train_set[DATA]):
     x = element[0]
     y = element[1]
     if train_set[LABELS][0][i] == -1:
-        pos.append([x,y])
+        neg['x'].append(x)
+        neg['y'].append(y)
     else:
-        neg.append([x,y])
+        pos['x'].append(x)
+        pos['y'].append(y)
     # end if
 # end for
-subplt.plot(pos[0], pos[1], label='x0,x1 +1')
+subplt.plot(pos['x'], pos['y'], label='postive')
+subplt.plot(neg['x'], neg['y'], label='negative')
 
 #subplt.plot([_[0] for i, _ in enumerate(train_set[DATA])], [_[1] for _ in train_set[DATA] if train_set[LABELS][0][i] == +1], label='x0,x1 +1')
 #subplt.plot([_[0] for i, _ in enumerate(train_set[DATA])], [_[1] for _ in train_set[DATA] if train_set[LABELS][0][i] == -1][0], label='x0,x1 -1')
