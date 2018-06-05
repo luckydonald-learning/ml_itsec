@@ -1,6 +1,7 @@
 import os
 import numpy as np
 from matplotlib import pyplot as plt
+from matplotlib.gridspec import GridSpec
 
 
 def balanced_error_rate(F, T):
@@ -93,21 +94,25 @@ for i, element in enumerate(train_set[DATA]):
     # end if
 # end for
 
-
+print('lel')
+layout = GridSpec(3,2)
 fig = plt.figure()
-subplt = fig.add_subplot(3,1,1)
+subplt = fig.add_subplot(layout[0, 0])
+subplt.title.set_text('Training data')
 subplt.plot([_[0] for _ in train_set[DATA]], '.', label='x0')
 subplt.plot([_[1] for _ in train_set[DATA]], '.', label='x1')
 subplt.legend(loc="lower right")
 
 
-subplt = fig.add_subplot(3,1,2)
+subplt = fig.add_subplot(layout[0, 1])
+subplt.title.set_text('Weight updates')
 subplt.plot(w0, '.', label='w0')
 subplt.plot(w1, '.', label='w1')
 subplt.legend(loc="lower right")
 
 
-subplt = fig.add_subplot(3,1,3)
+subplt = fig.add_subplot(layout[1:, :])
+subplt.title.set_text('Feature Space')
 subplt.plot(pos['x'], pos['y'], 'g.', label='postive')
 subplt.plot(neg['x'], neg['y'], 'r.', label='negative')
 
