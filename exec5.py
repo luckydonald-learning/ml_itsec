@@ -294,7 +294,7 @@ class Perception(object):
             and self.history_changes is not None
             and other.history_changes is not None
         ):
-            return self.history_changes < other.history_changes
+            return self.history_changes > other.history_changes
         # end if
         return self.balanced_error_rate < other.balanced_error_rate
     # end def
@@ -328,7 +328,7 @@ def main():
         ps.append(p)
     # end for
 
-    for i in range(1000):
+    for i in range(10000):
         p = Perception(train_set=train_set, test_set=test_set)  # random start weight
         p.train()
         p.test()
@@ -340,7 +340,7 @@ def main():
 
     # lowest rate is best rate.
     ps = list(sorted(ps, reverse=True))
-    for p in ps[:-10:100] + ps[-10:]:
+    for p in ps[-1:]:
         p.draw_training().show()
         pass
     # end for
