@@ -54,7 +54,7 @@ LABELS = 0
 DATA = 1
 
 
-class Perception(object):
+class Perceptron(object):
     @staticmethod
     def generate_random_tuple():
         return np.array([random.randint(0, 10) + random.random() for _ in range(2)])
@@ -267,6 +267,12 @@ class Perception(object):
         subplt.plot(in_pos['x'], in_pos['y'], color=(0.0, 1, 0.0), marker='.', linestyle='', label='postive learn')
         subplt.plot(in_neg['x'], in_neg['y'], color=(1.0, 0, 0.0), marker='.', linestyle='', label='negative learn')
 
+        xmin, xmax = subplt.get_xlim()
+        a = -self.w[0] / self.w[1]
+        x_ = np.linspace(xmin, xmax)
+        y_ = a * x_  # - (bias) / w[1]
+        subplt.plot(x_, y_, label='hyperplane')
+
         legendplt = fig.add_subplot(layout[1:, 3:])
         # Put a legend to the right of the current axis
         legendplt.set_axis_off()
@@ -319,7 +325,7 @@ def main():
     ]
     ps = []
     for i in range(len(randoms)):
-        p = Perception(train_set=train_set, start_w=randoms[i], test_set=test_set)
+        p = Perceptron(train_set=train_set, start_w=randoms[i], test_set=test_set)
         p.train()
         p.test()
         print('The one with weight {w!r} got a balanced error rate of {ber!r}.'.format(
@@ -328,8 +334,8 @@ def main():
         ps.append(p)
     # end for
 
-    for i in range(10000):
-        p = Perception(train_set=train_set, test_set=test_set)  # random start weight
+    for i in range(1000):
+        p = Perceptron(train_set=train_set, test_set=test_set)  # random start weight
         p.train()
         p.test()
         print('The one with weight {w!r} got a balanced error rate of {ber!r}.'.format(
@@ -340,7 +346,7 @@ def main():
 
     # lowest rate is best rate.
     ps = list(sorted(ps, reverse=True))
-    for p in ps[-1:]:
+    for p in ps[-1:]:  # only last one
         p.draw_training().show()
         pass
     # end for
