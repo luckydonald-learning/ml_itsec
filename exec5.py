@@ -89,19 +89,20 @@ class Perceptron(object):
         return f(self.w, features)
     # end def
 
-    def train(self):
+    def train(self, learn_rate=1.0):
         if self.train_set is None:
             raise ValueError('no training set.')
         # end if
-        if self.start_w is None:
-            raise ValueError('no initial weight vector set.')
+
+        self.w = self.start_w if self.w is None else self.w
+        if self.w is None:
+            raise ValueError('no (initial) weight vector set.')
         # end if
-        self.w = self.start_w
 
         N = len(self.train_set[LABELS][0])
 
-        self.history_w1.append(self.w[0])
-        self.history_w0.append(self.w[1])
+        self.history_w0.append(self.w[0])
+        self.history_w1.append(self.w[1])
         self.history_changes = 0 if self.history_changes is None else self.history_changes
 
         for i in range(N):
@@ -111,12 +112,28 @@ class Perceptron(object):
 
             if prediction != label:  # label != prediction
                 self.history_changes += 1
-                self.w = self.w + label * ϕ
+                self.w = self.w + learn_rate * label * ϕ
             # end if
             self.history_w0.append(self.w[0])
             self.history_w1.append(self.w[1])
         # end for
         return self.w
+    # end def
+
+    def train_multiple(self, max_count=10, learn_rate=1.0):
+        change_count = self.history_changes
+        self.train(learn_rate=learn_rate)
+        for i in range(max_count-1):
+            # train multiple times
+
+            if learn_rate
+            self.train(learn_rate=learn_rate)
+            if change_count == self.history_changes:
+                # no changes in one iteration
+                break
+            # end if
+            change_count = self.history_changes
+        # end for
     # end def
 
     def test(self):
@@ -260,8 +277,8 @@ class Perceptron(object):
 
         subplt = fig.add_subplot(layout[1:, :3])
         subplt.set_title('Feature Space')
-        subplt.plot(bg_pos['x'], bg_pos['y'], color=(0.7, 1, 0.7), marker='o', linestyle='', label='postive background')
-        subplt.plot(bg_neg['x'], bg_neg['y'], color=(1, 0.7, 0.7), marker='o', linestyle='', label='negative background')
+        #subplt.plot(bg_pos['x'], bg_pos['y'], color=(0.7, 1, 0.7), marker='o', linestyle='', label='postive background')
+        #subplt.plot(bg_neg['x'], bg_neg['y'], color=(1, 0.7, 0.7), marker='o', linestyle='', label='negative background')
         subplt.plot(test_pos['x'], test_pos['y'], color=(0, 1, 1), marker='.', linestyle='', label='postive test')
         subplt.plot(test_neg['x'], test_neg['y'], color=(1, 0, 1), marker='.', linestyle='', label='negative test')
         subplt.plot(in_pos['x'], in_pos['y'], color=(0.0, 1, 0.0), marker='.', linestyle='', label='postive learn')
@@ -321,12 +338,13 @@ def main():
         [7.20224935, 3.38816243],
         [8.67041419, 2.38209922],
         [9.257037201559537, 0.3442845],
-        [2.639494716122672, -2.577715365455056],
+        #[2.639494716122672, -2.577715365455056],
     ]
     ps = []
     for i in range(len(randoms)):
         p = Perceptron(train_set=train_set, start_w=randoms[i], test_set=test_set)
-        p.train()
+        p.train(0.5)
+
         p.test()
         print('The one with weight {w!r} got a balanced error rate of {ber!r}.'.format(
             w=list(p.w), ber=p.balanced_error_rate
@@ -334,7 +352,7 @@ def main():
         ps.append(p)
     # end for
 
-    for i in range(1000):
+    for i in range(0):
         p = Perceptron(train_set=train_set, test_set=test_set)  # random start weight
         p.train()
         p.test()
