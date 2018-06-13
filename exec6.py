@@ -3,6 +3,8 @@ from math import sqrt
 import numpy as np
 import os
 
+from matplotlib import pyplot
+from matplotlib.gridspec import GridSpec
 
 FOLDER = os.path.join('..','..', "Machine Learning for Computer Security", "Exercises", "mlsec-exer06-knn")
 
@@ -47,9 +49,30 @@ class NearestNeighborClassification(object):
         yield from ((dataset[DATA][X][i], dataset[DATA][Y][i]) for i in range(len(dataset[LABELS])))
     # end def
 
-    def test(self):
-        X_set = list(self._dataset_to_points(self.train_set))
-        self.evaluate(self.train_set[LABELS], X_set)
+    def test(self, dataset=None, k=None):
+        """
+        :param dataset: like `self.test_set` or `self.train_set` (default).
+        :type  dataset: List[List[int], List[List[float],List[float]]]
+
+        :param k: How many neighbors to take into account
+        :type  k: int
+
+        :return: error rate (error_count/total_count) for the dataset.
+        :rtype: float
+        """
+        if dataset is None:
+            dataset = self.train_set
+        # end if
+        X_set = list(self._dataset_to_points(dataset))
+        error = 0
+        i = 0
+        for success in self.evaluate(X_set, dataset[LABELS], k=k):
+            if not success:
+                error += 1
+            # end if
+            i += 1
+        # end for
+        return error/i  # rate
     # end def
 
     def evaluate(self, X=None, Y=None, k=None):
@@ -95,8 +118,14 @@ class NearestNeighborClassification(object):
         the value `undecided_default` if they are equally often present.
         :rtype: bool
         """
-        liste = list()  # [distance, point_x, point_y, label]
+        if k is None:
+            k = self.k
+        # end if
+        if not k:
+            raise ValueError('Using {} neighbors doesn\'t make sense.'.format(k))
+        # end if
 
+        liste = list()  # [distance, point_x, point_y, label]
         farest_k = None
 
         for i in range(len(self.train_set[LABELS])):
@@ -123,7 +152,7 @@ class NearestNeighborClassification(object):
 
                 # now we need to do somenting
                 liste.append([distance, x1, y1, label])
-                liste = sorted(liste, key=0)  # sort by distance
+                liste = sorted(liste, key=lambda elem: elem[0])  # sort by distance
                 del liste[-1]  # delete the farest away point
                 farest_k = liste[-1][0]  # the new farest element.
             # end def
@@ -149,10 +178,35 @@ class NearestNeighborClassification(object):
             return undecided_default
         # end def
     # end def
+
+    def draw_error_rate(self):
+        layout = GridSpec(1,1)
+        fig = pyplot.figure()
+
+        train_errors = [self.test(k=k, dataset=self.train_set) for k in range(1, 100)]
+        test_errors  = [self.test(k=k, dataset=self.test_set)  for k in range(1, 100)]
+
+        subplt = fig.add_subplot(layout[:, :])
+        subplt.title.set_text('Errors')
+        subplt.plot(train_errors, '.', label='train')
+        subplt.plot(test_errors, '.', label='test')
+        # # anotate the points:
+        # for k, e in (list(enumerate(train_errors)) + list(enumerate(test_errors)))[::10]:
+        #     #subplt.annotate('{k}'.format(k=k), xy=(k, e), xytext=(30, 0), textcoords='offset points')
+        #     subplt.annotate('k={k}, e={e:.2}'.format(k=k, e=e), xy=(k, e), textcoords='data')
+        # # end def
+        subplt.legend(loc="lower right")
+        subplt.set_xlabel('k')
+        subplt.set_ylabel('error rate')
+        return fig
 # end def
 
 
 if __name__ == '__main__':
-    knn = NearestNeighborClassification(train_set=train_set, test_set=test_set)
+    knn = NearestNeighborClassification(
+        train_set=train_set, test_set=test_set, k=1
+    )
     knn.train()  # lol
-    knn.test()  # calls knn.evaluate(X,Y)
+    # knn.test()  # calls knn.evaluate(X,Y)
+    knn.draw_error_rate().show()  # calls knn.test() for both the test and the train dataset.
+# end if
