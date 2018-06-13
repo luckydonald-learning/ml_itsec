@@ -125,8 +125,6 @@ class Perceptron(object):
         self.train(learn_rate=learn_rate)
         for i in range(max_count-1):
             # train multiple times
-
-            if learn_rate
             self.train(learn_rate=learn_rate)
             if change_count == self.history_changes:
                 # no changes in one iteration
