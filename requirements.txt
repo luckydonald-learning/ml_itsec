@@ -5,3 +5,4 @@ pandas
 matplotlib
 luckydonald-utils
 nltk
+Pillow==5.0.0
