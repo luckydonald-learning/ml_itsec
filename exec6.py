@@ -190,9 +190,8 @@ class NearestNeighborClassification(object):
         subplt.title.set_text('Errors')
         subplt.plot(train_errors, '.', label='train')
         subplt.plot(test_errors, '.', label='test')
-        # # anotate the points:
+        # # annotate the points:
         # for k, e in (list(enumerate(train_errors)) + list(enumerate(test_errors)))[::10]:
-        #     #subplt.annotate('{k}'.format(k=k), xy=(k, e), xytext=(30, 0), textcoords='offset points')
         #     subplt.annotate('k={k}, e={e:.2}'.format(k=k, e=e), xy=(k, e), textcoords='data')
         # # end def
         subplt.legend(loc="lower right")
