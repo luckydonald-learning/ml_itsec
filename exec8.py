@@ -1,8 +1,10 @@
+import colorsys
 from math import sqrt
-
+from luckydonaldUtils.files.basics import mkdir_p
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt  # if tkinter fails: $ sudo apt-get install python3-tk
+from matplotlib import colors
 
 from numpy.random import multivariate_normal, rand
 
@@ -35,13 +37,18 @@ def plot_clustering(Z, clusters, centroids, it):
     plt.figure()
     for i in range(len(centroids)):
         X = np.array([Z[x] for x in range(len(Z)) if clusters[x] == i])
-        plt.plot(X[:, 0], X[:, 1], 'x')
-    file = '%d.png' % it
+        p = plt.plot(X[:, 0], X[:, 1], 'x', label='cluster #{}'.format(i))
+        c = p[0].get_color()
+        c = colorsys.rgb_to_hls(*colors.to_rgb(c))  # https://stackoverflow.com/a/49601444/3423324
+        c = colorsys.hls_to_rgb(c[0], 0.5 * (1 - c[1]), c[2])
+        plt.plot(centroids[i][0], centroids[i][1], '+', label='centroid #{}'.format(i), color=c, markersize=20)
+    # end for
+    plt.legend(loc="lower right")
+    mkdir_p('out')
+    file = 'out/%d.png' % it
     plt.savefig(file)
     print('saved {!r}'.format(file))
 
-
-### IMPLEMENT ME ####
 
 def initialize(k):
     """ 
