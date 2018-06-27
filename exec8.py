@@ -104,9 +104,20 @@ def update_step(Z, clusters, k):
     
     :param Z: 
     :param clusters: 
-    :param k: 
+    :param k:
     :return: 
-    """"""
+    """
+    # mean = {0: (0.123, 0.2323), 1: (4.54645, 4.123), 2: (23.3, 45.0)}
+    sum = [np.array([0.0, 0.0]) for i in range(k)]  # key: cluster, value: tuple(x,y)
+    count = [0 for i in range(k)]  # key: cluster, value: int
+    for i in range(len(clusters)):
+        cluster = clusters[i]
+        value = Z[i]
+        sum[cluster] += value
+        count[cluster] += 1
+    # end for
+    mean = np.array(sum) / np.array([count, count]).T
+    return mean
     
 
 
