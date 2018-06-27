@@ -1,7 +1,10 @@
-import numpy as np
-import matplotlib.pyplot as plt
+from math import sqrt
 
-from numpy.random import multivariate_normal
+import numpy as np
+import matplotlib
+import matplotlib.pyplot as plt  # if tkinter fails: $ sudo apt-get install python3-tk
+
+from numpy.random import multivariate_normal, rand
 
 
 def generate_data_set(ncenters):
@@ -39,23 +42,72 @@ def plot_clustering(Z, clusters, centroids, it):
 ### IMPLEMENT ME ####
 
 def initialize(k):
-    # INSERT CODE HERE
-    pass
+    """ 
+    Generates k random d-dimensional centroids.
+
+    :param k:
+
+    :rtype: array of array[float, float]
+    """
+    return rand(k, 2) * 8  # from 0 to 8
+# end def
 
 
 def squared_euclidean_distances(Z, c):
-    # INSERT CODE HERE
-    pass
+    """
+    Distance of the datapoint Z[i] to the centroid c
+
+    :param Z: array of points
+    :type  Z: array of tuple[float, float]
+
+    :param c: centroid
+    :type  c: tuple[float, float]
+    """
+    n = len(Z)
+    x1, y1 = c
+    D = np.zeros((n, 1))
+    for i in range(n):
+        x0, y0 = Z[i]
+        D[i] = _distance_between_points(x0, y0, x1, y1)
+    # end for
+    return D
+# end def
+
+
+def _distance_between_points(x0, y0, x1, y1):
+    return sqrt(((x1 - x0) * (x1 - x0)) + ((y1 - y0) * (y1 - y0)))
+# end def
 
 
 def assignment_step(Z, centroids):
-    # INSERT CODE HERE
-    pass
+    clusters = []
+    for i_n in range(len(Z)):
+        x0, y0 = Z[i_n]
+        best_distance = None
+        best_centroid = -1
+        for i_k in range(len(centroids)):
+            x1, y1 = centroids[i_k]
+            new_distance = _distance_between_points(x0, y0, x1, y1)
+            if best_distance is None or best_distance > new_distance:
+                best_distance = new_distance
+                best_centroid = i_k
+            # end if
+        # end for
+        clusters.append(best_centroid)
+    # end for
+    return clusters
 
 
 def update_step(Z, clusters, k):
-    # INSERT CODE HERE
-    pass
+    """
+    Updates the centroid by calculating the mean of the vectors of each cluster.
+    
+    :param Z: 
+    :param clusters: 
+    :param k: 
+    :return: 
+    """"""
+    
 
 
 N = 10

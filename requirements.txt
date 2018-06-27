@@ -6,3 +6,4 @@ matplotlib
 luckydonald-utils
 nltk
 Pillow==5.0.0
+# tkinter: run $ sudo apt-get install python3-tk
