@@ -24,26 +24,46 @@ def generate_gaussian_data(mean, var, n=100):
 
 def my_kmeans(Z, k, niterations=20):
     centroids = initialize(k)
-
+    plot_clustering(Z, None, centroids, 0)
     for i in range(niterations):
         clusters = assignment_step(Z, centroids)
         centroids = update_step(Z, clusters, k)
-        plot_clustering(Z, clusters, centroids, i)
+        plot_clustering(Z, clusters, centroids, i+1)
 
     return centroids
 
 
 def plot_clustering(Z, clusters, centroids, it):
+    cluster_colors = []
     plt.figure()
+    plt.autoscale(True)
     for i in range(len(centroids)):
-        X = np.array([Z[x] for x in range(len(Z)) if clusters[x] == i])
-        p = plt.plot(X[:, 0], X[:, 1], 'x', label='cluster #{}'.format(i))
-        c = p[0].get_color()
-        c = colorsys.rgb_to_hls(*colors.to_rgb(c))  # https://stackoverflow.com/a/49601444/3423324
-        c = colorsys.hls_to_rgb(c[0], 0.5 * (1 - c[1]), c[2])
-        plt.plot(centroids[i][0], centroids[i][1], '+', label='centroid #{}'.format(i), color=c, markersize=20)
+        if clusters:
+            X = np.array([Z[x] for x in range(len(Z)) if clusters[x] == i])
+        else:
+            X = np.array(Z)
+        # end if
+        if len(X) != 0 and clusters:
+            p = plt.plot(X[:, 0], X[:, 1], 'x', label='cluster #{}'.format(i))
+            c = p[0].get_color()
+            c = colorsys.rgb_to_hls(*colors.to_rgb(c))  # https://stackoverflow.com/a/49601444/3423324
+            c = colorsys.hls_to_rgb(c[0], 0.5 * (1 - c[1]), c[2])
+            cluster_colors.append(c)
+        else:
+            if not clusters:
+                plt.plot(X[:, 0], X[:, 1], 'x', color='black', label='initial cluster'.format(i))
+            # end if
+            cluster_colors.append(None)
+        # end if
     # end for
-    plt.legend(loc="lower right")
+    for i in range(len(centroids)):
+        plt.autoscale(False)
+        plt.plot(
+            centroids[i][0], centroids[i][1], '+', label='centroid #{}'.format(i), color=cluster_colors[i], markersize=20,
+            scaley=False, scalex=False
+        )
+    # end for
+    # plt.legend(loc="lower right")
     mkdir_p('out')
     file = 'out/%d.png' % it
     plt.savefig(file)
@@ -130,8 +150,8 @@ def update_step(Z, clusters, k):
     
 
 
-N = 10
-k = 3
+N = 20
+k = 10
 
 Z = generate_data_set(N)
 my_kmeans(Z, k)
