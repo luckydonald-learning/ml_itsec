@@ -34,9 +34,11 @@ def my_kmeans(Z, k, niterations=20):
 def plot_clustering(Z, clusters, centroids, it):
     plt.figure()
     for i in range(len(centroids)):
-        X = Z[clusters == i, :]
+        X = np.array([Z[x] for x in range(len(Z)) if clusters[x] == i])
         plt.plot(X[:, 0], X[:, 1], 'x')
-        plt.savefig('%d.png' % it)
+    file = '%d.png' % it
+    plt.savefig(file)
+    print('saved {!r}'.format(file))
 
 
 ### IMPLEMENT ME ####
